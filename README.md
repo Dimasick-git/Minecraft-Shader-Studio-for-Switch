@@ -50,7 +50,7 @@ minecraft-shader-studio plan <pack> <title-id>
 python -m pip install -e .
 mss latest
 mss doctor
-mss init <name>
+mss init <name> [--preset {basic,newb-x,mcbe-codebase}]
 mss unpack <material.bin> -o <output_dir>
 mss validate <pack>
 mss build <pack> --minecraft-version <v> --atmosphere-version <v> --title-id <id>

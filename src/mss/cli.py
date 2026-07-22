@@ -13,7 +13,7 @@ def parser() -> argparse.ArgumentParser:
     sub=p.add_subparsers(dest="command",required=True)
     sub.add_parser("latest",help="Show rolling targets")
     sub.add_parser("doctor",help="Check local toolchain")
-    init=sub.add_parser("init",help="Initialize a new shader pack project");init.add_argument("name");init.add_argument("--author",default="Anonymous")
+    init=sub.add_parser("init",help="Initialize a new shader pack project");init.add_argument("name");init.add_argument("--author",default="Anonymous");init.add_argument("--preset",choices=["basic", "newb-x", "mcbe-codebase"],default="basic")
     v=sub.add_parser("validate",help="Validate shader pack");v.add_argument("pack",type=Path)
     up=sub.add_parser("unpack",help="Unpack .material.bin using Lazurite");up.add_argument("input",type=Path);up.add_argument("-o","--output",type=Path,default=Path("unpacked"))
     b=sub.add_parser("build",help="Build LayeredFS pack")
@@ -37,7 +37,7 @@ def main(argv=None)->int:
             print("MSS core: OK");return 0
         if args.command=="init":
             from .packager import init_project
-            path = init_project(args.name, args.author)
+            path = init_project(args.name, args.author, preset=args.preset)
             print(f"Project initialized in: {path}"); return 0
         if args.command=="validate": m=validate_pack(args.pack);print(f"OK: {m.id} {m.version}, author={m.author}");return 0
         if args.command=="unpack":

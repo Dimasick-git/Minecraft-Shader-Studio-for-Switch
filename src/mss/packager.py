@@ -67,7 +67,7 @@ def build(pack: Path, output: Path, minecraft: str, atmosphere: str, title_id: s
         shutil.copy2(tmp_zip, final_zip)
     return final_dir, final_zip
 
-def init_project(name: str, author: str) -> Path:
+def init_project(name: str, author: str, preset: str = "basic") -> Path:
     root = Path(name).resolve()
     if root.exists():
         raise ValidationError(f"Директория {name} уже существует")
@@ -82,7 +82,7 @@ def init_project(name: str, author: str) -> Path:
         "name": name,
         "version": "0.1.0",
         "author": author,
-        "description": "New Minecraft RenderDragon shader pack",
+        "description": f"New Minecraft RenderDragon shader pack based on {preset} preset",
         "materials_destination": "data/renderer/materials"
     }
     (root / "shader.json").write_text(json.dumps(shader_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -90,10 +90,16 @@ def init_project(name: str, author: str) -> Path:
     # Add a basic template README
     (root / "materials" / "README.md").write_text("# Materials\nPlace your `.material.bin` files here.\n", encoding="utf-8")
     
-    # Add an example GLSL template for reference
     glsl_dir = root / "src"
     glsl_dir.mkdir()
-    (glsl_dir / "example.vert").write_text("// Basic RenderDragon Vertex Shader Template\n#version 450\n\nlayout(location = 0) in vec3 position;\n\nvoid main() {\n    gl_Position = vec4(position, 1.0);\n}\n", encoding="utf-8")
-    (glsl_dir / "example.frag").write_text("// Basic RenderDragon Fragment Shader Template\n#version 450\n\nlayout(location = 0) out vec4 fragColor;\n\nvoid main() {\n    fragColor = vec4(1.0, 1.0, 1.0, 1.0);\n}\n", encoding="utf-8")
+    
+    if preset == "newb-x":
+        (glsl_dir / "newb_x_base.vert").write_text("// Preset: Newb X Legacy Base\n// Based on https://github.com/devendrn/newb-x-mcbe\n#version 450\n\nlayout(location = 0) in vec3 position;\nlayout(location = 1) in vec2 uv;\n\nvoid main() {\n    // Newb X specific logic would go here\n    gl_Position = vec4(position, 1.0);\n}\n", encoding="utf-8")
+        (glsl_dir / "newb_x_base.frag").write_text("// Preset: Newb X Legacy Base\n#version 450\n\nlayout(location = 0) out vec4 fragColor;\n\nvoid main() {\n    // Newb X lighting calculations\n    fragColor = vec4(0.5, 0.7, 1.0, 1.0); // Sky-ish blue\n}\n", encoding="utf-8")
+    elif preset == "mcbe-codebase":
+        (glsl_dir / "vanilla.vert").write_text("// Preset: MCBE Shader Codebase (Vanilla Restored)\n// Based on https://github.com/veka0/mcbe-shader-codebase\n#version 450\n\nvoid main() {\n    // Restored vanilla logic\n    gl_Position = vec4(0.0);\n}\n", encoding="utf-8")
+    else:
+        (glsl_dir / "example.vert").write_text("// Basic RenderDragon Vertex Shader Template\n#version 450\n\nlayout(location = 0) in vec3 position;\n\nvoid main() {\n    gl_Position = vec4(position, 1.0);\n}\n", encoding="utf-8")
+        (glsl_dir / "example.frag").write_text("// Basic RenderDragon Fragment Shader Template\n#version 450\n\nlayout(location = 0) out vec4 fragColor;\n\nvoid main() {\n    fragColor = vec4(1.0, 1.0, 1.0, 1.0);\n}\n", encoding="utf-8")
     
     return root
