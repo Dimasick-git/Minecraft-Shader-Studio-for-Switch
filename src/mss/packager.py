@@ -66,3 +66,34 @@ def build(pack: Path, output: Path, minecraft: str, atmosphere: str, title_id: s
                 zf.write(p, p.relative_to(stage).as_posix())
         shutil.copy2(tmp_zip, final_zip)
     return final_dir, final_zip
+
+def init_project(name: str, author: str) -> Path:
+    root = Path(name).resolve()
+    if root.exists():
+        raise ValidationError(f"Директория {name} уже существует")
+    
+    root.mkdir(parents=True)
+    (root / "materials").mkdir()
+    (root / "romfs").mkdir()
+    
+    shader_json = {
+        "schema": 1,
+        "id": name.lower().replace(" ", "-"),
+        "name": name,
+        "version": "0.1.0",
+        "author": author,
+        "description": "New Minecraft RenderDragon shader pack",
+        "materials_destination": "data/renderer/materials"
+    }
+    (root / "shader.json").write_text(json.dumps(shader_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    
+    # Add a basic template README
+    (root / "materials" / "README.md").write_text("# Materials\nPlace your `.material.bin` files here.\n", encoding="utf-8")
+    
+    # Add an example GLSL template for reference
+    glsl_dir = root / "src"
+    glsl_dir.mkdir()
+    (glsl_dir / "example.vert").write_text("// Basic RenderDragon Vertex Shader Template\n#version 450\n\nlayout(location = 0) in vec3 position;\n\nvoid main() {\n    gl_Position = vec4(position, 1.0);\n}\n", encoding="utf-8")
+    (glsl_dir / "example.frag").write_text("// Basic RenderDragon Fragment Shader Template\n#version 450\n\nlayout(location = 0) out vec4 fragColor;\n\nvoid main() {\n    fragColor = vec4(1.0, 1.0, 1.0, 1.0);\n}\n", encoding="utf-8")
+    
+    return root

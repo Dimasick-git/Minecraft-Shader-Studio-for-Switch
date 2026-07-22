@@ -1,3 +1,18 @@
+Metadata-Version: 2.4
+Name: minecraft-shader-studio
+Version: 0.1.0
+Summary: RenderDragon LayeredFS pack builder and native tooling for Nintendo Switch
+Author: Dimasick-git
+License: MIT
+Keywords: minecraft,renderdragon,nintendo-switch,atmosphere,layeredfs
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
 <div align="center">
   <img src="assets/logo.svg" width="112" alt="Minecraft Shader Studio logo">
   <h1>Minecraft Shader Studio</h1>
