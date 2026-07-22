@@ -51,9 +51,18 @@ python -m pip install -e .
 mss latest
 mss doctor
 mss init <name>
+mss unpack <material.bin> -o <output_dir>
 mss validate <pack>
 mss build <pack> --minecraft-version <v> --atmosphere-version <v> --title-id <id>
 ```
+
+### Интеграция с внешними инструментами
+
+Проект теперь поддерживает интеграцию с:
+- **Lazurite**: Для распаковки и анализа материалов RenderDragon.
+- **MaterialBinTool**: Для глубокой работы с `.material.bin` (требуется Java).
+- **uam-nvn**: Для компиляции шейдеров под Maxwell (Nintendo Switch).
+
 
 ### Switch loader — C++/libnx
 

@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "RenderDragon LayeredFS pack builder and native tooling for Nintendo Switch"
 readme = "README.md"
 requires-python = ">=3.11"
+dependencies = [
+  "lazurite>=0.8.4"
+]
 license = {text = "MIT"}
 authors = [{name = "Dimasick-git"}]
 keywords = ["minecraft", "renderdragon", "nintendo-switch", "atmosphere", "layeredfs"]
