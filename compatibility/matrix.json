@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "rolling": {
+    "minecraft_bedrock": "26.33",
+    "atmosphere": "1.11.2",
+    "checked_at": "2026-07-22T18:00:00Z",
+    "policy": "latest-detected, fail-closed-until-verified"
+  },
+  "targets": [
+    {
+      "minecraft": "26.33",
+      "atmosphere_min": "1.11.2",
+      "status": "detected",
+      "notes": "Latest Bedrock release detected; hardware verification required"
+    },
+    {
+      "minecraft": "26.32",
+      "atmosphere_min": "1.11.2",
+      "status": "verified",
+      "notes": "Initial public compatibility fixture"
+    }
+  ]
+}

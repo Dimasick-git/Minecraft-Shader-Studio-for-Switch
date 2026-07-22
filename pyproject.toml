@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minecraft-shader-studio"
+version = "0.1.0"
+description = "RenderDragon LayeredFS pack builder and native tooling for Nintendo Switch"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Dimasick-git"}]
+keywords = ["minecraft", "renderdragon", "nintendo-switch", "atmosphere", "layeredfs"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License"
+]
+
+[project.scripts]
+mss = "mss.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
