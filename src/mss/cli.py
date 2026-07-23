@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-import argparse, json, shutil, sys
+import argparse, json, shutil, sys, os
 from . import __version__
 from .compatibility import load_matrix
 from .packager import build, validate_pack
