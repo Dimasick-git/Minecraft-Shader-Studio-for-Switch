@@ -62,6 +62,15 @@ mss build <pack> --minecraft-version <v> --atmosphere-version <v> --title-id <id
 - **Lazurite**: Для распаковки и анализа материалов RenderDragon.
 - **MaterialBinTool**: Для глубокой работы с `.material.bin` (требуется Java).
 - **uam-nvn**: Для компиляции шейдеров под Maxwell (Nintendo Switch).
+- **Vulkan SDK (glslangValidator)**: Для компиляции шейдеров в SPIR-V, используемый в новых версиях Minecraft на Switch.
+
+### Vulkan пайплайн
+
+Если ваша версия Minecraft использует Vulkan:
+```bash
+mss vulkan compile your_shader.glsl --stage vert --output build/vulkan
+```
+
 
 
 ### Switch loader — C++/libnx

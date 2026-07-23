@@ -22,6 +22,8 @@ def parser() -> argparse.ArgumentParser:
     c=ns.add_parser("compile",help="Compile GLSL with uam-nvn/uam");c.add_argument("source",type=Path);c.add_argument("--stage",choices=[x.value for x in ShaderStage],required=True);c.add_argument("--output",type=Path,default=Path("build/nvn"));c.add_argument("--compiler",type=Path)
     i=ns.add_parser("inspect",help="Inspect NVN/Maxwell binary");i.add_argument("binary",type=Path)
     g=ns.add_parser("graft",help="Graft user-owned NVN prefix onto raw Maxwell payload");g.add_argument("--template",type=Path,required=True);g.add_argument("--raw",type=Path,required=True);g.add_argument("--output",type=Path,required=True)
+    v=sub.add_parser("vulkan",help="Vulkan/SPIR-V pipeline");vs=v.add_subparsers(dest="vulkan_command",required=True)
+    vc=vs.add_parser("compile",help="Compile GLSL to SPIR-V");vc.add_argument("source",type=Path);vc.add_argument("--stage",choices=["vert", "frag", "comp"],required=True);vc.add_argument("--output",type=Path,default=Path("build/vulkan"))
     return p
 
 def main(argv=None)->int:
@@ -51,6 +53,10 @@ def main(argv=None)->int:
                 artifact=compile_glsl(args.source,ShaderStage(args.stage),args.output,compiler=args.compiler);print(json.dumps({"raw":str(artifact.raw_maxwell),"dksh":str(artifact.dksh) if artifact.dksh else None,"compiler":artifact.compiler,"sha256":artifact.sha256,"size":artifact.size},indent=2));return 0
             if args.nvn_command=="inspect": print(json.dumps(inspect_nvn(args.binary).__dict__,indent=2));return 0
             if args.nvn_command=="graft": print(graft_nvn_prefix(args.template,args.raw,args.output));return 0
+        if args.command=="vulkan":
+            from .vulkan import compile_to_spirv
+            if args.vulkan_command=="compile":
+                artifact=compile_to_spirv(args.source,args.stage,args.output);print(json.dumps({"spirv":str(artifact.spirv),"compiler":artifact.compiler,"sha256":artifact.sha256,"size":artifact.size},indent=2));return 0
     except MSSError as exc: print(f"ERROR: {exc}",file=sys.stderr);return 2
     except (OSError,ValueError) as exc: print(f"ERROR: {exc}",file=sys.stderr);return 2
     return 1
