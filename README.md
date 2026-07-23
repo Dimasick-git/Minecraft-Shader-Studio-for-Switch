@@ -6,7 +6,7 @@
 </div>
 
 > [!IMPORTANT]
-> Это реальный собираемый проект с интеграцией открытых NVN/Maxwell-инструментов. `uam-nvn` используется как основной GLSL-компилятор, `devkitPro/uam` — как fallback. RenderDragon-контейнеры по-прежнему проверяются по версиям и hardware fixtures.
+> **Вердикт исследования (июль 2026): Switch-версия Minecraft загружает шейдеры Vulkan (SPIR-V)** — поэтому основной пайплайн проекта это Vulkan (Lazurite + bgfx shaderc). NVN/Maxwell-инструменты (`uam-nvn`, `devkitPro/uam`) — экспериментальный R&D-трек (roadmap R4): игра такие шейдеры сейчас не загружает. Доказательства и источники: [docs/RESEARCH-2026-07.md](docs/RESEARCH-2026-07.md). RenderDragon-контейнеры по-прежнему проверяются по версиям и hardware fixtures.
 
 ## Quick Start (Быстрый старт)
 
@@ -22,7 +22,8 @@
 3.  **Добавление материалов**: Поместите ваши `.material.bin` в папку `materials/`.
 4.  **Сборка**:
     ```bash
-    mss build . --minecraft-version 26.32 --atmosphere-version 1.11.2 --title-id 0100ABF008968000
+    # --allow-untested: 1.26.34 обнаружена, но ещё не подтверждена на железе
+    mss build . --minecraft-version 1.26.34 --atmosphere-version 1.11.2 --title-id 0100D71004694000 --allow-untested
     ```
 
 ## Реально компилируемые компоненты
@@ -59,19 +60,21 @@ mss build <pack> --minecraft-version <v> --atmosphere-version <v> --title-id <id
 ### База знаний и документация
 
 Мы собрали всю необходимую информацию для разработчиков шейдеров:
+- [Исследование: NVN или Vulkan? (июль 2026)](docs/RESEARCH-2026-07.md) — вердикт: Switch грузит Vulkan/SPIR-V; доказательства, тулчейн, источники.
 - [Технические детали RenderDragon на Switch](docs/wiki/RENDERDRAGON_SWITCH.md) — про NVN, Vulkan и форматы файлов.
 - [Гайд по LayeredFS и Title ID](docs/wiki/SWITCH_GUIDE.md) — как правильно устанавливать шейдеры на консоль.
 
 ### Интеграция с внешними инструментами
 
 Проект поддерживает:
-- **Lazurite**: Распаковка и анализ материалов.
+- **Lazurite**: Распаковка, анализ и сборка материалов (основной тулчейн).
 - **MaterialBinTool**: Глубокая работа с `.material.bin`.
-- **uam-nvn / Vulkan SDK**: Компиляция под все актуальные API.
+- **bgfx shaderc (форк bgfx-mcbe)**: Компиляция bgfx SC → SPIR-V (Vulkan — то, что реально грузит Switch).
+- **uam-nvn / uam**: Экспериментальный NVN/Maxwell-трек (R&D).
 
-### Vulkan пайплайн
+### Vulkan пайплайн (основной для Switch)
 
-Если ваша версия Minecraft использует Vulkan:
+Switch-версия Minecraft загружает именно SPIR-V, поэтому это главный трек проекта:
 ```bash
 mss vulkan compile your_shader.glsl --stage vert --output build/vulkan
 ```
@@ -87,9 +90,9 @@ make -C switch-loader
 
 Loader собирается в `minecraft-shader-studio.nro`. Сейчас реализован безопасный UI-каркас; запись overlay будет включена только после атомарного rollback и тестов на Erista/Mariko.
 
-## NVN pipeline
+## NVN pipeline (экспериментальный R&D)
 
-Проект теперь напрямую интегрирует открытый `uam-nvn` и использует `devkitPro/uam` как fallback. Реализованы компиляция GLSL в 64-байтово выровненный Maxwell payload, инспекция NVN-бинарников и экспериментальное сохранение 0x30-байтового NVN prefix из пользовательского шаблона.
+Проект напрямую интегрирует открытый `uam-nvn` и использует `devkitPro/uam` как fallback. Реализованы компиляция GLSL в 64-байтово выровненный Maxwell payload, инспекция NVN-бинарников и экспериментальное сохранение 0x30-байтового NVN prefix из пользовательского шаблона. **Minecraft эти бинарники сейчас не загружает** (тег `Nvn` зарезервирован «на будущее») — трек существует для исследования формата (roadmap R4).
 
 ```bash
 export MSS_UAM=/path/to/uam-nvn
@@ -111,11 +114,11 @@ examples/            публичные тестовые fixtures
 .github/workflows/   CI, release и version watcher
 ```
 
-## Последние targets на 22 июля 2026
+## Последние targets на 23 июля 2026
 
-- Minecraft Bedrock detected: `26.33`;
-- последний проверенный fixture: `26.32`;
-- Atmosphère: `1.11.2`.
+- Minecraft Bedrock detected: `1.26.34` (preview: `1.26.50`);
+- Title ID (Bedrock): `0100D71004694000`;
+- Atmosphère: `1.11.2` (FW 22.5.0).
 
 Новые версии автоматически обнаруживаются. Они получают статус `detected` и блокируются до проверки, чтобы проект не заявлял ложную совместимость.
 
