@@ -1,23 +1,17 @@
 {
   "schema": 1,
   "rolling": {
-    "minecraft_bedrock": "26.33",
+    "minecraft_bedrock": "1.26.34",
     "atmosphere": "1.11.2",
-    "checked_at": "2026-07-22T18:00:00Z",
+    "checked_at": "2026-07-23T20:30:00Z",
     "policy": "latest-detected, fail-closed-until-verified"
   },
   "targets": [
     {
-      "minecraft": "26.33",
+      "minecraft": "1.26.34",
       "atmosphere_min": "1.11.2",
       "status": "detected",
-      "notes": "Latest Bedrock release detected; hardware verification required"
-    },
-    {
-      "minecraft": "26.32",
-      "atmosphere_min": "1.11.2",
-      "status": "verified",
-      "notes": "Initial public compatibility fixture"
+      "notes": "Latest Bedrock release (2026-07-23); hardware verification pending (Erista/Mariko)"
     }
   ]
 }

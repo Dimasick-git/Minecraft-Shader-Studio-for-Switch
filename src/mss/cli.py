@@ -17,7 +17,7 @@ def parser() -> argparse.ArgumentParser:
     v=sub.add_parser("validate",help="Validate shader pack");v.add_argument("pack",type=Path)
     up=sub.add_parser("unpack",help="Unpack .material.bin using Lazurite");up.add_argument("input",type=Path);up.add_argument("-o","--output",type=Path,default=Path("unpacked"))
     b=sub.add_parser("build",help="Build LayeredFS pack")
-    b.add_argument("pack",type=Path);b.add_argument("--output",type=Path,default=Path("dist"));b.add_argument("--minecraft-version",required=True);b.add_argument("--atmosphere-version",required=True);b.add_argument("--title-id",required=True);b.add_argument("--allow-untested",action="store_true")
+    b.add_argument("pack",type=Path);b.add_argument("--output",type=Path,default=Path("dist"));b.add_argument("--minecraft-version",required=True);b.add_argument("--atmosphere-version",required=True);b.add_argument("--title-id",default="0100D71004694000",help="Title ID игры (по умолчанию Minecraft Bedrock: 0100D71004694000)");b.add_argument("--allow-untested",action="store_true")
     n=sub.add_parser("nvn",help="NVN/Maxwell pipeline");ns=n.add_subparsers(dest="nvn_command",required=True)
     c=ns.add_parser("compile",help="Compile GLSL with uam-nvn/uam");c.add_argument("source",type=Path);c.add_argument("--stage",choices=[x.value for x in ShaderStage],required=True);c.add_argument("--output",type=Path,default=Path("build/nvn"));c.add_argument("--compiler",type=Path)
     i=ns.add_parser("inspect",help="Inspect NVN/Maxwell binary");i.add_argument("binary",type=Path)

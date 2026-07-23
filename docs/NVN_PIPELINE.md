@@ -1,5 +1,11 @@
 # NVN / Maxwell pipeline
 
+> **Статус: экспериментальный R&D-трек (roadmap R4).** По результатам исследования
+> (июль 2026) Switch-версия Minecraft загружает шейдеры **Vulkan (SPIR-V)**; тег `Nvn`
+> в material.bin зарезервирован и игрой не используется. Этот пайплайн исследует формат
+> NVN/Maxwell на будущее и для homebrew — рабочий путь для Minecraft описан в
+> [RESEARCH-2026-07.md](RESEARCH-2026-07.md).
+
 ## Upstream components
 
 1. **nvnprogram/uam-nvn** — public fork of UAM modified to compile NVN shaders. Preferred compiler executable: `uam-nvn`.

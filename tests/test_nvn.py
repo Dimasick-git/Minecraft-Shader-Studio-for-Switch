@@ -17,7 +17,9 @@ class NvnTests(unittest.TestCase):
         p=self.root/"shader.bin";p.write_bytes(b'P'*48+b'R'*128);i=inspect_nvn(p);self.assertTrue(i.has_nvn_prefix);self.assertEqual(i.sph_offset,48)
     def test_graft_preserves_prefix(self):
         t=self.root/"base.bin";r=self.root/"raw.bin";o=self.root/"out.bin";t.write_bytes(b'P'*48+b'B'*128);r.write_bytes(b'R'*128)
-        graft_nvn_prefix(t,r,o);self.assertEqual(o.read_bytes(),b'P'*48+b'R'*128);self.assertTrue(Path(str(o)+'.json').is_file())
+        graft_nvn_prefix(t,r,o)
+        # graft выравнивает payload до 256 байт (128 raw + 128 нулей паддинга)
+        self.assertEqual(o.read_bytes(),b'P'*48+b'R'*128+b'\x00'*128);self.assertTrue(Path(str(o)+'.json').is_file())
     def test_reject_unaligned(self):
         t=self.root/"base.bin";r=self.root/"raw.bin";t.write_bytes(b'P'*48+b'B'*128);r.write_bytes(b'bad')
         with self.assertRaises(ValidationError):graft_nvn_prefix(t,r,self.root/"out")
