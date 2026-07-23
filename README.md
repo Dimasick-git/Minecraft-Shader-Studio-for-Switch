@@ -56,13 +56,18 @@ mss validate <pack>
 mss build <pack> --minecraft-version <v> --atmosphere-version <v> --title-id <id>
 ```
 
+### База знаний и документация
+
+Мы собрали всю необходимую информацию для разработчиков шейдеров:
+- [Технические детали RenderDragon на Switch](docs/wiki/RENDERDRAGON_SWITCH.md) — про NVN, Vulkan и форматы файлов.
+- [Гайд по LayeredFS и Title ID](docs/wiki/SWITCH_GUIDE.md) — как правильно устанавливать шейдеры на консоль.
+
 ### Интеграция с внешними инструментами
 
-Проект теперь поддерживает интеграцию с:
-- **Lazurite**: Для распаковки и анализа материалов RenderDragon.
-- **MaterialBinTool**: Для глубокой работы с `.material.bin` (требуется Java).
-- **uam-nvn**: Для компиляции шейдеров под Maxwell (Nintendo Switch).
-- **Vulkan SDK (glslangValidator)**: Для компиляции шейдеров в SPIR-V, используемый в новых версиях Minecraft на Switch.
+Проект поддерживает:
+- **Lazurite**: Распаковка и анализ материалов.
+- **MaterialBinTool**: Глубокая работа с `.material.bin`.
+- **uam-nvn / Vulkan SDK**: Компиляция под все актуальные API.
 
 ### Vulkan пайплайн
 
