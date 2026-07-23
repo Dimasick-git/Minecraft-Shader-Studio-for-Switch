@@ -1,0 +1,39 @@
+name: Version Watcher
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Every 6 hours
+  workflow_dispatch:
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Check for updates
+        id: check
+        run: |
+          python scripts/check_latest.py --update > update_log.txt
+          cat update_log.txt
+          if grep -q "Matrix updated." update_log.txt; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Commit and push if changed
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add compatibility/matrix.json
+          git commit -m "Auto-update: Minecraft/Atmosphere versions detected"
+          git push
