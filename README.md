@@ -74,10 +74,25 @@ mss build <pack> --minecraft-version <v> --atmosphere-version <v> --title-id <id
 
 ### Vulkan пайплайн (основной для Switch)
 
-Switch-версия Minecraft загружает именно SPIR-V, поэтому это главный трек проекта:
+Switch-версия Minecraft загружает именно SPIR-V, поэтому это главный трек проекта.
+**Проверено end-to-end 23.07.2026**: bgfx SC → shaderc (SPIR-V) → merge с ванильными
+метаданными → `material.bin` с платформой Vulkan.
+
 ```bash
-mss vulkan compile your_shader.glsl --stage vert --output build/vulkan
+# один раз: скачать shaderc + хедеры bgfx (+ ванильные материалы для merge)
+python3 scripts/fetch_toolchain.py --vanilla
+
+# компиляция lazurite-проекта под Switch
+mss compile examples/first-light -o examples/first-light/materials \
+    --shaderc toolchains/bin/shadercRelease
+
+# упаковка LayeredFS-архива для Atmosphère
+mss build examples/first-light --minecraft-version 1.26.34 --atmosphere-version 1.11.2 --allow-untested
 ```
+
+Готовый пример: [examples/first-light](examples/first-light) — ванильное небо с
+настраиваемым твиком зенита. Отдельная компиляция одиночных GLSL в SPIR-V:
+`mss vulkan compile your_shader.glsl --stage vert --output build/vulkan`
 
 
 

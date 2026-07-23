@@ -97,6 +97,12 @@ graft, выравнивание), но **не** путь доставки шей
 Android/Windows/iOS — **Switch-таргет не публикуют**, но их исходники + lazurite позволяют
 собрать Vulkan-вариант самостоятельно. Это и есть ниша Minecraft Shader Studio.
 
+> **Верификация (23.07.2026):** пайплайн проверен end-to-end в изолированной среде:
+> lazurite 0.8.4 + shaderc bgfx-mcbe (1.18.121) + сериализованные ванильные материалы
+> 1.26.10 → собран `Sky.material.bin` (format version 25, платформа **Vulkan**, 4 варианта
+> шейдера: Vertex/Fragment × Instancing On/Off). Интеграция: команда `mss compile`,
+> рабочий пример: `examples/first-light/`.
+
 ## 5. Установка на консоль
 
 - **Title ID (Bedrock): `0100D71004694000`** (eShop «Minecraft», Mojang, релиз 20.06.2018).

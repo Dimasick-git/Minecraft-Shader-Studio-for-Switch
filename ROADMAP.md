@@ -5,6 +5,7 @@
 
 ## R1 — Material laboratory 🚧
 - MaterialBinTool/Lazurite adapters; structural diff; per-version fixtures; crash-safe logs.
+- ✅ 2026-07-23: адаптер `lazurite build` (`mss compile`, профиль switch → Vulkan), скрипт тулчейна и пример `first-light`; Vulkan-компиляция проверена end-to-end в песочнице.
 
 ## R2 — Hardware validation
 - Erista/Mariko smoke protocol; handheld/docked profiles; frame-time budget; rollback test.
