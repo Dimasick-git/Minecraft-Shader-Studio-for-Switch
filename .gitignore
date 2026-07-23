@@ -15,3 +15,10 @@ CMakeFiles/
 .DS_Store
 .idea/
 .vscode/
+
+# Скачиваемый тулчейн и ванильные материалы Mojang — никогда не коммитить
+toolchains/bin/
+examples/*/vanilla/*
+!examples/*/vanilla/.gitkeep
+examples/*/include/*.sh
+examples/*/materials/*.material.bin

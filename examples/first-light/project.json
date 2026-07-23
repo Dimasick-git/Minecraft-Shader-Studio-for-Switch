@@ -1,0 +1,13 @@
+{
+  "base_profile": {
+    "platforms": ["Vulkan"],
+    "merge_source": ["vanilla"],
+    "include_patterns": ["Sky"],
+    "exclude_patterns": [".*", "_*"],
+    "include_search_paths": ["include"]
+  },
+  "profiles": {
+    "switch": { "platforms": ["Vulkan"] },
+    "android": { "platforms": ["ESSL_310"] }
+  }
+}

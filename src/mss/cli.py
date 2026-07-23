@@ -24,6 +24,8 @@ def parser() -> argparse.ArgumentParser:
     g=ns.add_parser("graft",help="Graft user-owned NVN prefix onto raw Maxwell payload");g.add_argument("--template",type=Path,required=True);g.add_argument("--raw",type=Path,required=True);g.add_argument("--output",type=Path,required=True)
     v=sub.add_parser("vulkan",help="Vulkan/SPIR-V pipeline");vs=v.add_subparsers(dest="vulkan_command",required=True)
     vc=vs.add_parser("compile",help="Compile GLSL to SPIR-V");vc.add_argument("source",type=Path);vc.add_argument("--stage",choices=["vert", "frag", "comp"],required=True);vc.add_argument("--output",type=Path,default=Path("build/vulkan"))
+    cp=sub.add_parser("compile",help="Compile lazurite project to material.bin (Switch/Vulkan by default)")
+    cp.add_argument("project",type=Path);cp.add_argument("-o","--output",type=Path,default=Path("materials"));cp.add_argument("--profile",default="switch",help="Профиль из project.json (по умолчанию: switch)");cp.add_argument("--shaderc",type=Path,help="Путь к shaderc из bgfx-mcbe (или env MSS_SHADERC)");cp.add_argument("--lazurite",type=Path,help="Путь к lazurite (или env MSS_LAZURITE)");cp.add_argument("-d","--define",action="append",dest="defines",help="Дополнительный макрос (можно несколько раз)")
     return p
 
 def main(argv=None)->int:
@@ -33,7 +35,8 @@ def main(argv=None)->int:
         if args.command=="doctor":
             print(f"Python: {sys.version.split()[0]}")
             print(f"uam-nvn/uam: {shutil.which('uam-nvn') or shutil.which('uam') or 'not found'}")
-            print(f"Lazurite: {shutil.which('lazurite') or 'not found'}")
+            print(f"Lazurite: {shutil.which('lazurite') or os.environ.get('MSS_LAZURITE') or 'not found'}")
+            print(f"shaderc (bgfx-mcbe): {shutil.which('shadercRelease') or shutil.which('shaderc') or os.environ.get('MSS_SHADERC') or 'not found (см. scripts/fetch_toolchain.py)'}")
             print(f"Java: {shutil.which('java') or 'not found (required for MaterialBinTool)'}")
             print(f"MaterialBinTool: {shutil.which('MaterialBinTool.jar') or os.environ.get('MATERIAL_BIN_TOOL_JAR') or 'not found (optional)'}")
             print("MSS core: OK");return 0
@@ -57,6 +60,11 @@ def main(argv=None)->int:
             from .vulkan import compile_to_spirv
             if args.vulkan_command=="compile":
                 artifact=compile_to_spirv(args.source,args.stage,args.output);print(json.dumps({"spirv":str(artifact.spirv),"compiler":artifact.compiler,"sha256":artifact.sha256,"size":artifact.size},indent=2));return 0
+        if args.command=="compile":
+            from .compile import compile_project
+            produced=compile_project(args.project,args.output,profile=args.profile,shaderc=args.shaderc,lazurite=args.lazurite,defines=args.defines)
+            for b in produced: print(b)
+            print(f"OK: {len(produced)} material.bin (профиль: {args.profile})");return 0
     except MSSError as exc: print(f"ERROR: {exc}",file=sys.stderr);return 2
     except (OSError,ValueError) as exc: print(f"ERROR: {exc}",file=sys.stderr);return 2
     return 1

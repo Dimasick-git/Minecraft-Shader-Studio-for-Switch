@@ -1,0 +1,1 @@
+{"schema":1,"id":"first-light","name":"First Light","version":"0.1.0","author":"Dimasick-git","description":"Первый тестовый Vulkan-шейдер MSS: ванильное небо с усиленным градиентом зенита","materials_destination":"renderer/materials"}

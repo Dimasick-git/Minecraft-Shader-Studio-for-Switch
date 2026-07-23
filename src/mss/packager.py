@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import json, shutil, tempfile, zipfile
 from datetime import datetime, timezone
+from . import __version__
 from .models import ShaderManifest, validate_title_id
 from .compatibility import assert_supported
 from .hashing import sha256
@@ -52,7 +53,7 @@ def build(pack: Path, output: Path, minecraft: str, atmosphere: str, title_id: s
         for p in sorted(_safe_files(stage)):
             records.append({"path": p.relative_to(stage).as_posix(), "size": p.stat().st_size, "sha256": sha256(p)})
         meta = {
-            "schema": 1, "generator": "Minecraft Shader Studio 0.1.0",
+            "schema": 1, "generator": f"Minecraft Shader Studio {__version__}",
             "author": "Dimasick-git", "pack": manifest.id, "pack_version": str(manifest.version),
             "minecraft": minecraft, "atmosphere": atmosphere, "compatibility_status": target["status"],
             "built_at": datetime.now(timezone.utc).isoformat(), "files": records,
@@ -83,7 +84,7 @@ def init_project(name: str, author: str, preset: str = "basic") -> Path:
         "version": "0.1.0",
         "author": author,
         "description": f"New Minecraft RenderDragon shader pack based on {preset} preset",
-        "materials_destination": "data/renderer/materials"
+        "materials_destination": "renderer/materials"
     }
     (root / "shader.json").write_text(json.dumps(shader_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     
