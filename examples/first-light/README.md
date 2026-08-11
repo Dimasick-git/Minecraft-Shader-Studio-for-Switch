@@ -6,7 +6,7 @@
 
 ## Подготовка
 
-1. Установите зависимости MSS и скачайте host-`shaderc` с BGFX headers:
+1. Установите зависимости MSS и скачайте проверяемый host-`shaderc` с BGFX headers. После этого штатный `shadercRelease` будет найден автоматически:
 
    ```bash
    python -m pip install -e .
@@ -32,7 +32,6 @@
 ```bash
 mss compile examples/first-light \
   -o examples/first-light/materials \
-  --shaderc toolchains/bin/shadercRelease \
   --baseline /путь/к/Sky.material.bin \
   -d "FIRST_LIGHT_STRENGTH 0.35"
 ```

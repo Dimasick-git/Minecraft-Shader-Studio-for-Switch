@@ -28,7 +28,7 @@ python3 scripts/fetch_toolchain.py
 mss doctor
 ```
 
-Скрипт загружает открытые host-инструменты `shaderc` и BGFX headers. Его опция `--reference-merge` скачивает только открытые reference-материалы для изучения; это **не** Switch baseline. Для реальной проверки baseline должен быть извлечён пользователем из RomFS своей копии Minecraft и соответствовать установленной версии игры.
+Скрипт загружает открытые host-инструменты `shaderc` и BGFX headers по закреплённой ревизии и проверяет SHA-256 для поддерживаемого Linux toolchain; после этого MSS автоматически находит `toolchains/bin/shadercRelease`. Его опция `--reference-merge` скачивает только открытые reference-материалы для изучения; это **не** Switch baseline. Для реальной проверки baseline должен быть извлечён пользователем из RomFS своей копии Minecraft и соответствовать установленной версии игры.
 
 ## Контролируемый Switch/Vulkan workflow
 
@@ -42,7 +42,6 @@ mss material inspect /путь/к/SunMoon.material.bin
 # 2. Собрать минимальный texture probe; baseline обязателен для profile switch.
 mss compile examples/texture-probe \
   -o examples/texture-probe/materials \
-  --shaderc toolchains/bin/shadercRelease \
   --baseline /путь/к/SunMoon.material.bin \
   -d "TEXTURE_PROBE_STRENGTH 0.25"
 
@@ -65,7 +64,6 @@ mss build examples/texture-probe \
 ```bash
 mss compile examples/first-light \
   -o examples/first-light/materials \
-  --shaderc toolchains/bin/shadercRelease \
   --baseline /путь/к/Sky.material.bin \
   -d "FIRST_LIGHT_STRENGTH 0.35"
 ```
@@ -90,7 +88,7 @@ mss latest
 mss init <name> [--preset {basic,newb-x,mcbe-codebase}]
 mss material inspect <material.bin>
 mss material compare --baseline <switch.material.bin> --candidate <built.material.bin>
-mss compile <project> --baseline <switch.material.bin> --shaderc <shadercRelease>
+mss compile <project> --baseline <switch.material.bin> [--shaderc <custom-shaderc>]
 mss build <pack> --minecraft-version <v> --atmosphere-version <v> [--allow-untested]
 mss validate <pack>
 mss unpack <material.bin> -o <output_dir>

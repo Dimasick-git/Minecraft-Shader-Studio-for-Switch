@@ -5,7 +5,7 @@
 передаче ``baseline`` MSS дополнительно проверяет сохранение platform tag,
 формата и базовых шейдерных метаданных ванильного Switch-материала.
 
-Инструменты ищутся в порядке: явный аргумент → переменная окружения → PATH.
+Инструменты ищутся в порядке: явный аргумент → переменная окружения → PATH → штатный `toolchains/bin` репозитория.
 - lazurite:  MSS_LAZURITE  (pip install lazurite)
 - shaderc:   MSS_SHADERC   (сборка bgfx-mcbe: shadercRelease)
 """
@@ -20,6 +20,7 @@ from .errors import ToolchainError
 
 DEFAULT_PROFILE = "switch"
 SWITCH_PLATFORM = "Vulkan"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def find_tool(explicit: Path | str | None, env_var: str, names: list[str]) -> str:
@@ -39,6 +40,10 @@ def find_tool(explicit: Path | str | None, env_var: str, names: list[str]) -> st
         found = shutil.which(name)
         if found:
             return found
+    for name in names:
+        bundled = PROJECT_ROOT / "toolchains" / "bin" / name
+        if bundled.is_file():
+            return str(bundled)
     raise ToolchainError(
         f"Не найден инструмент {names[0]!r}. Установите его, задайте {env_var} "
         "или передайте путь аргументом (см. scripts/fetch_toolchain.py)."

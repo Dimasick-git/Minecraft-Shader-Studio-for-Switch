@@ -22,7 +22,7 @@ mss material inspect /путь/к/SunMoon.material.bin
 
 ## Сборка
 
-Сначала скачайте совместимый host-`shaderc` и хедеры BGFX:
+Сначала скачайте проверяемый host-`shaderc` и хедеры BGFX. Скрипт закрепляет BGFX revision и проверяет SHA-256 для штатного Linux toolchain; затем `mss compile` подхватывает `shadercRelease` автоматически:
 
 ```bash
 python3 scripts/fetch_toolchain.py
@@ -33,7 +33,6 @@ python3 scripts/fetch_toolchain.py
 ```bash
 mss compile examples/texture-probe \
   -o examples/texture-probe/materials \
-  --shaderc toolchains/bin/shadercRelease \
   --baseline /путь/к/SunMoon.material.bin \
   -d "TEXTURE_PROBE_STRENGTH 0.25"
 ```

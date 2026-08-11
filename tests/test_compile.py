@@ -1,4 +1,5 @@
 import json, os, stat, tempfile, unittest
+from unittest.mock import patch
 from pathlib import Path
 from mss.compile import compile_project, find_tool
 from mss.errors import ToolchainError
@@ -82,6 +83,14 @@ class CompileTests(unittest.TestCase):
             self.assertEqual(find_tool(None, "MSS_TEST_TOOL", ["missing-bin"]), str(tool))
         finally:
             del os.environ["MSS_TEST_TOOL"]
+
+    def test_find_tool_bundled(self):
+        bundled = self.root / "toolchains" / "bin" / "shadercRelease"
+        bundled.parent.mkdir(parents=True)
+        bundled.write_text("#!/bin/sh\nexit 0\n")
+        bundled.chmod(bundled.stat().st_mode | stat.S_IXUSR)
+        with patch("mss.compile.PROJECT_ROOT", self.root):
+            self.assertEqual(find_tool(None, "MSS_NO_SUCH_VAR", ["shadercRelease"]), str(bundled))
 
     def test_find_tool_missing(self):
         with self.assertRaises(ToolchainError):
