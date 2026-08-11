@@ -1,148 +1,125 @@
 <div align="center">
   <img src="assets/logo.svg" width="112" alt="Minecraft Shader Studio logo">
   <h1>Minecraft Shader Studio</h1>
-  <p><strong>Native tools and a LayeredFS pack builder for experimental Minecraft Bedrock RenderDragon work on Nintendo Switch.</strong></p>
-  <p><img alt="R&D" src="https://img.shields.io/badge/status-active%20R%26D-2783DE"> <img alt="C++20" src="https://img.shields.io/badge/C%2B%2B-20-2783DE"> <img alt="tests" src="https://img.shields.io/badge/tests-native%20%2B%20Python-46A171"></p>
+  <p><strong>Инструменты сборки и диагностический стенд для экспериментальных RenderDragon/Vulkan-материалов Minecraft Bedrock на Nintendo Switch.</strong></p>
+  <p><img alt="R&D" src="https://img.shields.io/badge/status-controlled%20R%26D-2783DE"> <img alt="C++20" src="https://img.shields.io/badge/C%2B%2B-20-2783DE"> <img alt="tests" src="https://img.shields.io/badge/tests-native%20%2B%20Python-46A171"></p>
 </div>
 
-> [!IMPORTANT]
-> **Вердикт исследования (июль 2026): Switch-версия Minecraft загружает шейдеры Vulkan (SPIR-V)** — поэтому основной пайплайн проекта это Vulkan (Lazurite + bgfx shaderc). NVN/Maxwell-инструменты (`uam-nvn`, `devkitPro/uam`) — экспериментальный R&D-трек (roadmap R4): игра такие шейдеры сейчас не загружает. Доказательства и источники: [docs/RESEARCH-2026-07.md](docs/RESEARCH-2026-07.md). RenderDragon-контейнеры по-прежнему проверяются по версиям и hardware fixtures.
+> **Статус проекта.** Lazurite документирует `Vulkan` как платформу Switch, а LayeredFS позволяет подменять файлы RomFS в CFW. Это делает Vulkan `material.bin` практическим направлением исследования, но **не доказывает** работу конкретного пользовательского шейдера на устройстве. MSS различает `built-and-inspected` и `hardware-verified`; второй статус присваивается только после теста на вашей консоли. Подробный обзор публичных наработок: [исследование от 11 августа 2026](docs/RESEARCH-2026-08.md). [1]
 
-## Quick Start (Быстрый старт)
+## Что реально делает MSS
 
-1.  **Установка**:
-    ```bash
-    python -m pip install -e .
-    ```
-2.  **Создание проекта**:
-    ```bash
-    mss init "MyCoolShader" --author "YourName"
-    cd MyCoolShader
-    ```
-3.  **Добавление материалов**: Поместите ваши `.material.bin` в папку `materials/`.
-4.  **Сборка**:
-    ```bash
-    # --allow-untested: 1.26.34 обнаружена, но ещё не подтверждена на железе
-    mss build . --minecraft-version 1.26.34 --atmosphere-version 1.11.2 --title-id 0100D71004694000 --allow-untested
-    ```
+| Возможность | Статус | Что это означает |
+|---|---|---|
+| Сборка BGFX SC в Lazurite-проекте | Реализовано | Используется `shaderc` из `bgfx-mcbe` для сборки `material.bin` под профиль `Vulkan`. |
+| Проверка Switch baseline | Реализовано | `mss compile --profile switch` требует ванильный Vulkan `.material.bin` из RomFS той же версии игры и проверяет invariants результата. |
+| Инспекция material.bin | Реализовано | `mss material inspect` сохраняет hash, format version, платформы, стадии, варианты и число texture buffers. |
+| Контрольный тест текстур | Реализовано | `examples/texture-probe` проверяет `s_SunMoonTexture` перед сложными материалами. |
+| Работа на конкретной Switch | Не подтверждено автоматически | Требует controlled hardware test, наблюдения в игре и сохранённого отчёта. |
+| NVN/Maxwell-путь | Экспериментальный | Не является методом загрузки материала Minecraft; не используйте его для Switch-пака. |
 
-## Реально компилируемые компоненты
+## Перед началом
 
-### Native CLI — C++20
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-./build/minecraft-shader-studio validate examples/vibrant-lite
-```
-
-Команды:
-
-```text
-minecraft-shader-studio version
-minecraft-shader-studio validate <pack>
-minecraft-shader-studio plan <pack> <title-id>
-```
-
-### Pack builder — Python 3.11+
+Установите Python 3.11+ и зависимости проекта. Для разработки из clone используйте editable-установку; для запуска тестов без установки применяйте `PYTHONPATH=src`.
 
 ```bash
 python -m pip install -e .
-mss latest
+python3 scripts/fetch_toolchain.py
 mss doctor
+```
+
+Скрипт загружает открытые host-инструменты `shaderc` и BGFX headers. Его опция `--reference-merge` скачивает только открытые reference-материалы для изучения; это **не** Switch baseline. Для реальной проверки baseline должен быть извлечён пользователем из RomFS своей копии Minecraft и соответствовать установленной версии игры.
+
+## Контролируемый Switch/Vulkan workflow
+
+Сначала протестируйте минимум — `SunMoon` с одной текстурой. Это целенаправленно проверяет открытый риск Lazurite/Vulkan с texture sampler, прежде чем менять `RenderChunk` или переносить большой shader pack. [2]
+
+```bash
+# 1. Взять из RomFS своей Switch-версии игры:
+#    renderer/materials/SunMoon.material.bin
+mss material inspect /путь/к/SunMoon.material.bin
+
+# 2. Собрать минимальный texture probe; baseline обязателен для profile switch.
+mss compile examples/texture-probe \
+  -o examples/texture-probe/materials \
+  --shaderc toolchains/bin/shadercRelease \
+  --baseline /путь/к/SunMoon.material.bin \
+  -d "TEXTURE_PROBE_STRENGTH 0.25"
+
+# 3. Получить независимый структурный отчёт.
+mss material compare \
+  --baseline /путь/к/SunMoon.material.bin \
+  --candidate examples/texture-probe/materials/SunMoon.material.bin
+
+# 4. Упаковать LayeredFS-архив. Версии указывайте от своей установки.
+mss build examples/texture-probe \
+  --minecraft-version ВАША_ВЕРСИЯ \
+  --atmosphere-version ВАША_ВЕРСИЯ \
+  --allow-untested
+```
+
+Положительный `material compare` говорит, что собранный файл сохраняет имя, format version, `Vulkan`, стадии и варианты baseline. Он **не** проверяет изображение и всегда оставляет `hardware_verified: false`. Инструкции наблюдения, A/B-теста и rollback приведены в [README texture-probe](examples/texture-probe/README.md).
+
+После успешной texture-проверки можно аналогично собрать `first-light`, передав собственный `Sky.material.bin` как baseline:
+
+```bash
+mss compile examples/first-light \
+  -o examples/first-light/materials \
+  --shaderc toolchains/bin/shadercRelease \
+  --baseline /путь/к/Sky.material.bin \
+  -d "FIRST_LIGHT_STRENGTH 0.35"
+```
+
+Опция `--unsafe-no-baseline` существует только для CI и smoke-сборок. CLI маркирует такой результат как `smoke-build-only`; его нельзя устанавливать на Switch.
+
+## Аппаратная проверка и rollback
+
+LayeredFS ожидает структуру `sd:/atmosphere/contents/<title_id>/romfs/...`. Если игра перестала запускаться после установки теста, удерживайте `L` при запуске, чтобы отключить моды, затем удалите последний `.material.bin` из overlay. [3]
+
+| Наблюдение | Значение | Следующий шаг |
+|---|---|---|
+| Sun/Moon видны с мягким cyan-сдвигом | Texture probe прошёл на этой связке baseline, игры и toolchain. | Сохранить отчёты `inspect/compare`, версии и SHA-256; только затем переходить к сложному материалу. |
+| Чёрная/белая текстура, crash, отсутствие эффекта | Обнаружен полезный failure; это может быть sampler-баг или несоответствие baseline/версии. | Откатить LayeredFS, сохранить отчёты и подготовить репродуктор для upstream. |
+| Файл собран, но на консоли не проверялся | Только `built-and-inspected`. | Не заявлять работу на Switch и не распространять как готовый shader pack. |
+
+## Команды
+
+```text
+mss doctor
+mss latest
 mss init <name> [--preset {basic,newb-x,mcbe-codebase}]
-mss unpack <material.bin> -o <output_dir>
+mss material inspect <material.bin>
+mss material compare --baseline <switch.material.bin> --candidate <built.material.bin>
+mss compile <project> --baseline <switch.material.bin> --shaderc <shadercRelease>
+mss build <pack> --minecraft-version <v> --atmosphere-version <v> [--allow-untested]
 mss validate <pack>
-mss build <pack> --minecraft-version <v> --atmosphere-version <v> --title-id <id>
+mss unpack <material.bin> -o <output_dir>
 ```
 
-### База знаний и документация
-
-Мы собрали всю необходимую информацию для разработчиков шейдеров:
-- [Исследование: NVN или Vulkan? (июль 2026)](docs/RESEARCH-2026-07.md) — вердикт: Switch грузит Vulkan/SPIR-V; доказательства, тулчейн, источники.
-- [Технические детали RenderDragon на Switch](docs/wiki/RENDERDRAGON_SWITCH.md) — про NVN, Vulkan и форматы файлов.
-- [Гайд по LayeredFS и Title ID](docs/wiki/SWITCH_GUIDE.md) — как правильно устанавливать шейдеры на консоль.
-
-### Интеграция с внешними инструментами
-
-Проект поддерживает:
-- **Lazurite**: Распаковка, анализ и сборка материалов (основной тулчейн).
-- **MaterialBinTool**: Глубокая работа с `.material.bin`.
-- **bgfx shaderc (форк bgfx-mcbe)**: Компиляция bgfx SC → SPIR-V (Vulkan — то, что реально грузит Switch).
-- **uam-nvn / uam**: Экспериментальный NVN/Maxwell-трек (R&D).
-
-### Vulkan пайплайн (основной для Switch)
-
-Switch-версия Minecraft загружает именно SPIR-V, поэтому это главный трек проекта.
-**Проверено end-to-end 23.07.2026**: bgfx SC → shaderc (SPIR-V) → merge с ванильными
-метаданными → `material.bin` с платформой Vulkan.
+## Проверки разработки
 
 ```bash
-# один раз: скачать shaderc + хедеры bgfx (+ ванильные материалы для merge)
-python3 scripts/fetch_toolchain.py --vanilla
-
-# компиляция lazurite-проекта под Switch
-mss compile examples/first-light -o examples/first-light/materials \
-    --shaderc toolchains/bin/shadercRelease
-
-# упаковка LayeredFS-архива для Atmosphère
-mss build examples/first-light --minecraft-version 1.26.34 --atmosphere-version 1.11.2 --allow-untested
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
 ```
 
-Готовый пример: [examples/first-light](examples/first-light) — ванильное небо с
-настраиваемым твиком зенита. Отдельная компиляция одиночных GLSL в SPIR-V:
-`mss vulkan compile your_shader.glsl --stage vert --output build/vulkan`
-
-
-
-### Switch loader — C++/libnx
-
-```bash
-# В devkitPro shell с devkitA64 и libnx
-make -C switch-loader
-```
-
-Loader собирается в `minecraft-shader-studio.nro`. Сейчас реализован безопасный UI-каркас; запись overlay будет включена только после атомарного rollback и тестов на Erista/Mariko.
-
-## NVN pipeline (экспериментальный R&D)
-
-Проект напрямую интегрирует открытый `uam-nvn` и использует `devkitPro/uam` как fallback. Реализованы компиляция GLSL в 64-байтово выровненный Maxwell payload, инспекция NVN-бинарников и экспериментальное сохранение 0x30-байтового NVN prefix из пользовательского шаблона. **Minecraft эти бинарники сейчас не загружает** (тег `Nvn` зарезервирован «на будущее») — трек существует для исследования формата (roadmap R4).
-
-```bash
-export MSS_UAM=/path/to/uam-nvn
-mss nvn compile examples/nvn/minimal.vert --stage vert --output build/nvn
-mss nvn inspect base.nvn.bin
-mss nvn graft --template base.nvn.bin --raw build/nvn/minimal.vert.maxwell.bin --output build/nvn/minimal.nvn.bin
-```
-
-Техническая схема и upstream-компоненты: [docs/NVN_PIPELINE.md](docs/NVN_PIPELINE.md).
-
-## Структура
+## Структура репозитория
 
 ```text
 native/              C++20 host CLI и unit tests
-src/mss/             Python pack builder
-switch-loader/       libnx homebrew application
+src/mss/             Python CLI, build и material inspection
+switch-loader/       libnx homebrew UI-каркас; overlay-запись не реализована
 compatibility/       rolling version matrix
-examples/            публичные тестовые fixtures
-.github/workflows/   CI, release и version watcher
+examples/            публичные исходники и диагностические fixtures
+docs/                исследования, протоколы и Switch guide
 ```
 
-## Последние targets на 23 июля 2026
+## Лицензия и ограничения
 
-- Minecraft Bedrock detected: `1.26.34` (preview: `1.26.50`);
-- Title ID (Bedrock): `0100D71004694000`;
-- Atmosphère: `1.11.2` (FW 22.5.0).
+Проект не содержит Minecraft, ключи, дампы, Nintendo SDK или проприетарные `material.bin`. Используйте только файлы, законно полученные из собственной копии игры. Никакая часть этого проекта не обходит лицензионные механизмы и не превращает произвольный GLSL в подтверждённый NVN-материал Minecraft.
 
-Новые версии автоматически обнаруживаются. Они получают статус `detected` и блокируются до проверки, чтобы проект не заявлял ложную совместимость.
-
-## Ограничения
-
-Проект не включает Minecraft, ключи, дампы, Nintendo SDK и проприетарные `material.bin`. Он не обходит лицензию и не преобразует произвольный GLSL в NVN. Поддерживаются только файлы, законно полученные пользователем из собственной копии игры.
-
-## Проверки
-
-CI собирает C++ на Linux, Windows и macOS, запускает native tests, Python tests, compileall и secret scan. Автор исходников: **Dimasick-git**.
-
-Лицензия: MIT. Проект не связан с Mojang, Microsoft, Nintendo или Atmosphère-NX.
+[1]: docs/RESEARCH-2026-08.md "Актуальный статус пользовательских RenderDragon-шейдеров на Nintendo Switch"
+[2]: https://github.com/veka0/lazurite/issues/6 "Lazurite issue #6 — broken textures on Vulkan"
+[3]: https://switch.hacks.guide/extras/game_modding.html "NH Switch Guide — Game modding with LayeredFS"

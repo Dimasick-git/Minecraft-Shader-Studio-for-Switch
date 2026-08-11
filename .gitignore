@@ -18,6 +18,7 @@ CMakeFiles/
 
 # Скачиваемый тулчейн и ванильные материалы Mojang — никогда не коммитить
 toolchains/bin/
+toolchains/include/
 examples/*/vanilla/*
 !examples/*/vanilla/.gitkeep
 examples/*/include/*.sh

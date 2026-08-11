@@ -1,6 +1,8 @@
 # Исследование: NVN или Vulkan? Полная картина шейдеров Minecraft Bedrock на Nintendo Switch
 
-*Дата: 23 июля 2026. Статус: актуально для Bedrock 1.26.x, Atmosphère 1.11.2.*
+*Дата: 23 июля 2026. Историческое исследование; его практические выводы дополнены и ограничены в [RESEARCH-2026-08.md](RESEARCH-2026-08.md).*
+
+> **Актуальная оговорка от 11 августа 2026.** Наличие `Vulkan` в `material.bin` и успешная Lazurite-сборка не равны подтверждённой работе пользовательского шейдера на Switch. Используйте обязательный Switch baseline и `texture-probe` из нового протокола. В частности, в открытом README старого MaterialBinTool Vulkan/Switch не был заявлен как поддерживаемая цель; считать его доказательством современного Switch workflow нельзя.
 
 ## TL;DR — Вердикт
 
@@ -35,9 +37,7 @@ RenderDragon появился на Switch в **Bedrock 1.18.30 (апрель 202
 
 ## 2. Доказательства
 
-1. **MaterialBinTool (ddf8196)** — README прямо перечисляет:
-   *«Currently supported platforms: ESSL (Android), Direct3D (Win10), Metal (iOS), **Vulkan (Nintendo Switch)**»*.
-   → https://github.com/ddf8196/MaterialBinTool
+1. **MaterialBinTool (ddf8196)** — исторический unpack/repack/compile-инструмент. Его открытый README перечисляет ESSL, Direct3D и Metal; текущий Switch/Vulkan workflow на нём не основан. Для современного направления используйте Lazurite и обязательный baseline; подробности — в [RESEARCH-2026-08.md](RESEARCH-2026-08.md).
 
 2. **Lazurite (veka0), docs/platforms.md** — таблица платформ: `Vulkan` → *Switch*;
    `Nvn` → *Switch (future)*. В коде (`platform.py`) у `Nvn` нет ветки компиляции вообще,

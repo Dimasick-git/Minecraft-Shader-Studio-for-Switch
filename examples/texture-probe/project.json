@@ -2,12 +2,13 @@
   "base_profile": {
     "platforms": ["Vulkan"],
     "merge_source": ["vanilla"],
-    "include_patterns": ["Sky"],
+    "include_patterns": ["SunMoon"],
     "exclude_patterns": [".*", "_*"],
     "include_search_paths": ["include", "../../toolchains/include"]
   },
   "profiles": {
-    "switch": { "platforms": ["Vulkan"] },
-    "android": { "platforms": ["ESSL_310"] }
+    "switch": {
+      "platforms": ["Vulkan"]
+    }
   }
 }

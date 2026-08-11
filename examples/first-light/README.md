@@ -1,84 +1,70 @@
-# First Light — первый тестовый Vulkan-шейдер для Switch
+# First Light — контрольный Sky-шейдер для Switch/Vulkan
 
-Минимальный рабочий пример пайплайна MSS: ванильное небо Minecraft Bedrock с
-одним аккуратным твиком — усиленным градиентом зенита («первый свет»).
-Собирается в `Sky.material.bin` с платформой **Vulkan (SPIR-V)** — именно такой
-формат загружает Switch-версия игры (вердикт: [docs/RESEARCH-2026-07.md](../../docs/RESEARCH-2026-07.md)).
+`first-light` — минимальный пример для материала `Sky`. Он сохраняет простую геометрию ванильного неба и добавляет один параметр `FIRST_LIGHT_STRENGTH`, усиливающий градиент зенита. В отличие от `texture-probe`, пример не использует семплеры; поэтому он годится как **первый контрольный тест пути `material.bin → LayeredFS → Sky`**, но не доказывает работу текстурных материалов.
 
-Пайплайн проверен end-to-end 23.07.2026: `lazurite build` + shaderc (bgfx-mcbe)
-успешно собирают этот проект в material.bin с тегом Vulkan (format version 25,
-4 варианта шейдера: Vertex/Fragment × Instancing On/Off).
+> Сборка сообщает только `built-and-inspected`. `hardware-verified` — ручной результат проверки на вашей Switch. Сначала рекомендуется выполнить [`../texture-probe`](../texture-probe/README.md), потому что текстурный Vulkan-путь остаётся наиболее важным открытым риском.
 
-## Состав
+## Подготовка
 
-```
-first-light/
-├─ project.json      конфиг lazurite-проекта (профили switch и android)
-├─ shader.json       манифест MSS-пака (для mss build)
-├─ Sky/              исходники материала неба (bgfx SC)
-│  ├─ config.json    маппинг флагов (Instancing → INSTANCING) и файлов
-│  ├─ vertex.sc      ванильная логика + твик FIRST_LIGHT_STRENGTH
-│  ├─ fragment.sc    ванильный passthrough
-│  └─ varying.def.sc атрибуты и varyings как в ванилле
-├─ vanilla/          сюда кладутся ванильные материалы (merge source) — НЕ коммитить!
-└─ include/          сюда кладутся хедеры bgfx (bgfx_shader.sh) — скачиваются скриптом
-```
+1. Установите зависимости MSS и скачайте host-`shaderc` с BGFX headers:
 
-## Подготовка (один раз)
-
-1. Python 3.10+ и lazurite:
    ```bash
-   pip install lazurite
+   python -m pip install -e .
+   python3 scripts/fetch_toolchain.py
    ```
-2. Тулчейн (shaderc + хедеры bgfx) и, опционально, сериализованные ванильные
-   материалы (1.26.10, из dev-релиза newb-shader):
+
+2. Из RomFS **своей** Switch-версии Minecraft возьмите:
+
+   ```text
+   renderer/materials/Sky.material.bin
+   ```
+
+3. Убедитесь, что baseline принадлежит Switch/Vulkan и сохраните его hash:
+
    ```bash
-   python3 scripts/fetch_toolchain.py --vanilla
+   mss material inspect /путь/к/Sky.material.bin
    ```
-3. **Рекомендуется для финальной сборки:** ванильные материалы из дампа *вашей*
-   копии игры (nxdumptool/DBI → RomFS → `renderer/materials/`). Положите
-   `Sky.material.bin` из дампа в `vanilla/` — merge пройдёт по вашей версии игры.
-   Ванильные файлы (как .bin, так и .material.json) — собственность Mojang,
-   **не коммитьте и не распространяйте их** (папка vanilla/ в .gitignore).
+
+Файлы из вашей игры не коммитятся: при сборке MSS копирует baseline только в игнорируемую `vanilla/` внутри данного example. Открытые reference-материалы, которые можно скачать через `fetch_toolchain.py --reference-merge`, не являются заменой Switch baseline.
 
 ## Сборка
 
-Из корня репозитория:
-
 ```bash
-# компиляция под Switch (Vulkan) прямо в папку пака
-mss compile examples/first-light -o examples/first-light/materials \
-    --shaderc toolchains/bin/shadercRelease
-
-# упаковка LayeredFS-архива (title ID Bedrock подставляется по умолчанию)
-mss build examples/first-light --minecraft-version 1.26.34 \
-    --atmosphere-version 1.11.2 --allow-untested
+mss compile examples/first-light \
+  -o examples/first-light/materials \
+  --shaderc toolchains/bin/shadercRelease \
+  --baseline /путь/к/Sky.material.bin \
+  -d "FIRST_LIGHT_STRENGTH 0.35"
 ```
 
-Результат: `dist/mss-first-light-0.1.0.zip` со структурой
-`atmosphere/contents/0100D71004694000/romfs/renderer/materials/Sky.material.bin` —
-распаковать в корень SD-карты. Установка и риски: [docs/wiki/SWITCH_GUIDE.md](../../docs/wiki/SWITCH_GUIDE.md).
-
-Проверка на Android-устройстве (без консоли): профиль `--profile android`
-собирает ESSL-вариант, который можно подложить через MaterialBinLoader.
-
-## Твик
-
-Сила эффекта задаётся макросом (по умолчанию 0.35):
+После этого зафиксируйте структурную проверку отдельной командой:
 
 ```bash
-mss compile examples/first-light -o ... -d "FIRST_LIGHT_STRENGTH 0.6"
+mss material compare \
+  --baseline /путь/к/Sky.material.bin \
+  --candidate examples/first-light/materials/Sky.material.bin
 ```
 
-`FIRST_LIGHT_STRENGTH 0.0` даёт полностью ванильное небо — удобно для
-A/B-проверки, что пайплайн не ломает картинку сам по себе.
+`FIRST_LIGHT_STRENGTH 0.0` отключает только цветовой твик и подходит для A/B-проверки. Положительный `compatible: true` означает, что имя, format version, `Vulkan`, стадии и варианты материала сохранены; он не оценивает изображение на консоли.
 
-## Известные ограничения
+## Установка и безопасный тест
 
-- Метаданные из dev-релиза newb-shader соответствуют 1.26.10; для точного
-  соответствия вашей версии игры используйте материалы из собственного дампа.
-- Сообщалось о баге семплеров (`s_MatTexture`) на Vulkan в сборках lazurite
-  (veka0/lazurite#6, эпоха 1.21.101). Материал Sky семплеры не использует,
-  поэтому пример от него не зависит — но проверка на железе обязательна.
-- Первый запуск на консоли — по протоколу R2 (см. ROADMAP): сначала пустой
-  тест `FIRST_LIGHT_STRENGTH 0.0`, потом эффект.
+```bash
+mss build examples/first-light \
+  --minecraft-version ВАША_ВЕРСИЯ \
+  --atmosphere-version ВАША_ВЕРСИЯ \
+  --allow-untested
+```
+
+Распакуйте архив в корень SD-карты согласно [Switch guide](../../docs/wiki/SWITCH_GUIDE.md). Если игра не запускается, удерживайте `L` при старте для отключения LayeredFS-модов, затем удалите последний overlay. До первой проверки на железе не распространяйте результат как рабочий Switch-пак.
+
+## Ограничения
+
+| Вопрос | Статус |
+|---|---|
+| Сохранение Vulkan и основных material metadata | Проверяется MSS автоматически при `--baseline`. |
+| Реальное отображение неба на Switch | Требует ручного наблюдения. |
+| Семплеры и текстуры Vulkan | Не проверяются этим примером; используйте `texture-probe`. |
+| Поддержка других версий Minecraft | Нужен baseline из RomFS соответствующей версии. |
+
+Контекст и публичные источники: [актуальное исследование Switch/Vulkan](../../docs/RESEARCH-2026-08.md).

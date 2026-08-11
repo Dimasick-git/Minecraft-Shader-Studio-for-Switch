@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
-"""Загрузка тулчейна Vulkan-пайплайна. Author: Dimasick-git.
+"""Загрузка host-тулчейна для Vulkan-пайплайна MSS.
 
-Скачивает:
-1. shaderc (сборка bgfx-mcbe от veka0) — компилятор bgfx SC → SPIR-V и др.
-2. Шейдерные хедеры bgfx (bgfx_shader.sh, bgfx_compute.sh) для include.
-3. (опционально, --vanilla) сериализованные ванильные материалы
-   (*.material.json) из dev-релиза newb-shader — для merge_source.
+Скачивает только открытые компоненты:
 
-Ванильные material.bin из ДАМПА вашей копии игры этот скрипт не заменяет:
-для финальной сборки под конкретную версию Switch рекомендуется merge с
-файлами из собственного дампа (см. docs/wiki/SWITCH_GUIDE.md).
+1. `shaderc` из `veka0/bgfx-mcbe` для host-машины;
+2. хедеры BGFX для исходников `.sc`;
+3. опциональные сериализованные reference-материалы из dev-релиза Newb Shader.
+
+Reference-материалы не являются Switch baseline и не заменяют material.bin,
+извлечённый пользователем из RomFS той же версии Minecraft. Для установки на
+Switch `mss compile --profile switch` требует именно пользовательский
+`--baseline` с платформой Vulkan.
 
 Только стандартная библиотека. Пример:
-    python3 scripts/fetch_toolchain.py --vanilla
+    python3 scripts/fetch_toolchain.py
+    python3 scripts/fetch_toolchain.py --reference-merge
 """
 from __future__ import annotations
 
 import argparse
-import os
 import platform
 import sys
 import urllib.request
@@ -25,10 +26,9 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-
 SHADERC_RELEASE = "https://github.com/veka0/bgfx-mcbe/releases/download/binaries/"
 BGFX_RAW = "https://raw.githubusercontent.com/veka0/bgfx-mcbe/master/src/"
-VANILLA_RELEASE = "https://github.com/devendrn/newb-shader/releases/download/dev/"
+REFERENCE_MERGE_RELEASE = "https://github.com/devendrn/newb-shader/releases/download/dev/"
 
 SHADERC_PLATFORMS = {
     ("Linux", "x86_64"): "shaderc-linux-x64.zip",
@@ -41,14 +41,28 @@ SHADERC_PLATFORMS = {
 
 def download(url: str, dest: Path) -> None:
     print(f"  <- {url}")
-    req = urllib.request.Request(url, headers={"User-Agent": "MSS-toolchain/0.2"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        data = r.read()
+    request = urllib.request.Request(url, headers={"User-Agent": "MSS-toolchain/0.2"})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        data = response.read()
     if len(data) < 100:
         raise RuntimeError(f"Подозрительно маленький файл ({len(data)} байт): {url}")
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(data)
     print(f"  -> {dest} ({len(data)} байт)")
+
+
+def extract_zip_safely(archive: Path, destination: Path) -> list[str]:
+    """Распаковать ZIP, не позволяя архиву записать файл вне destination."""
+    destination.mkdir(parents=True, exist_ok=True)
+    root = destination.resolve()
+    with zipfile.ZipFile(archive) as zip_file:
+        members = zip_file.infolist()
+        for member in members:
+            target = (root / member.filename).resolve()
+            if target != root and root not in target.parents:
+                raise RuntimeError(f"ZIP содержит небезопасный путь: {member.filename}")
+        zip_file.extractall(root)
+    return [member.filename for member in members]
 
 
 def fetch_shaderc(dest_dir: Path, platform_key: str | None) -> Path | None:
@@ -59,17 +73,17 @@ def fetch_shaderc(dest_dir: Path, platform_key: str | None) -> Path | None:
         return None
     archive = dest_dir / filename
     download(SHADERC_RELEASE + filename, archive)
-    with zipfile.ZipFile(archive) as z:
-        z.extractall(dest_dir)
-        members = z.namelist()
+    members = extract_zip_safely(archive, dest_dir)
     archive.unlink()
     binary = None
     for name in members:
-        p = dest_dir / name
-        if p.is_file() and not name.endswith((".txt", ".md")):
+        candidate = dest_dir / name
+        if candidate.is_file() and not name.endswith((".txt", ".md")):
             if not name.endswith(".exe"):
-                p.chmod(p.stat().st_mode | 0o755)
-            binary = p
+                candidate.chmod(candidate.stat().st_mode | 0o755)
+            binary = candidate
+    if binary is None:
+        raise RuntimeError(f"В архиве {filename} не найден исполняемый shaderc")
     return binary
 
 
@@ -78,35 +92,53 @@ def fetch_headers(include_dir: Path) -> None:
         download(BGFX_RAW + header, include_dir / header)
 
 
-def fetch_vanilla(vanilla_dir: Path, mc_version: str) -> None:
+def fetch_reference_merge(destination: Path, mc_version: str) -> None:
     filename = f"src-materials-{mc_version}.zip"
-    archive = vanilla_dir / filename
-    download(VANILLA_RELEASE + filename, archive)
-    with zipfile.ZipFile(archive) as z:
-        z.extractall(vanilla_dir)
+    archive = destination / filename
+    download(REFERENCE_MERGE_RELEASE + filename, archive)
+    extract_zip_safely(archive, destination)
     archive.unlink()
-    count = len(list(vanilla_dir.glob("*.material.json")))
-    print(f"  ванильных материалов: {count}")
+    count = len(list(destination.glob("*.material.json")))
+    print(f"  reference-материалов: {count}")
+    print("  Внимание: это не Switch baseline; не используйте их как --baseline.")
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--bin-dir", type=Path, default=ROOT / "toolchains" / "bin")
-    ap.add_argument("--include-dir", type=Path, default=ROOT / "examples" / "first-light" / "include")
-    ap.add_argument("--vanilla", action="store_true", help="Скачать сериализованные ванильные материалы")
-    ap.add_argument("--vanilla-dir", type=Path, default=ROOT / "examples" / "first-light" / "vanilla")
-    ap.add_argument("--mc-version", default="1.26.10", help="Версия материалов из dev-релиза newb-shader")
-    ap.add_argument("--platform", dest="platform_key", default=None,
-                    help="Форсировать платформу shaderc: linux-x64, win-x64, osx-x64, android-arm64, android-arm")
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--bin-dir", type=Path, default=ROOT / "toolchains" / "bin")
+    parser.add_argument("--include-dir", type=Path, default=ROOT / "toolchains" / "include")
+    parser.add_argument(
+        "--reference-merge",
+        action="store_true",
+        help="Скачать открытые reference material.json для изучения; не для Switch baseline",
+    )
+    parser.add_argument(
+        "--vanilla",
+        dest="reference_merge",
+        action="store_true",
+        help="Устаревший alias для --reference-merge; загружает только reference-материалы",
+    )
+    parser.add_argument(
+        "--reference-dir",
+        type=Path,
+        default=ROOT / "examples" / "first-light" / "reference-merge",
+    )
+    parser.add_argument("--mc-version", default="1.26.10", help="Версия reference-материалов Newb Shader")
+    parser.add_argument(
+        "--platform",
+        dest="platform_key",
+        default=None,
+        help="Форсировать платформу shaderc: linux-x64, win-x64, osx-x64, android-arm64, android-arm",
+    )
+    args = parser.parse_args()
 
     print("Скачиваю shaderc (bgfx-mcbe)...")
     binary = fetch_shaderc(args.bin_dir, args.platform_key)
-    print("Скачиваю хедеры bgfx...")
+    print("Скачиваю хедеры BGFX...")
     fetch_headers(args.include_dir)
-    if args.vanilla:
-        print(f"Скачиваю ванильные материалы {args.mc_version}...")
-        fetch_vanilla(args.vanilla_dir, args.mc_version)
+    if args.reference_merge:
+        print(f"Скачиваю reference-материалы {args.mc_version}...")
+        fetch_reference_merge(args.reference_dir, args.mc_version)
 
     print("\nГотово.")
     if binary:
@@ -116,4 +148,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

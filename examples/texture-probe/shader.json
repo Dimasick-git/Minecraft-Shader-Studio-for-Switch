@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "id": "texture-probe",
+  "name": "Switch Vulkan Texture Probe",
+  "version": "0.2.0",
+  "author": "Dimasick-git",
+  "description": "Контролируемый SunMoon-тест s_SunMoonTexture для диагностики Vulkan material.bin на Nintendo Switch; требует проверки на консоли",
+  "materials_destination": "renderer/materials"
+}
