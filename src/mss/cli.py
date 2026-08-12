@@ -13,6 +13,7 @@ from .compatibility import load_matrix
 from .errors import MSSError
 from .nvn import ShaderStage, compile_glsl, graft_nvn_prefix, inspect_nvn
 from .packager import build, validate_pack
+from .overlay import OverlayManager
 
 
 def _print_json(value: object) -> None:
@@ -36,6 +37,20 @@ def parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="mss", description="Minecraft Shader Studio")
     parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command", required=True)
+
+    # Overlay commands
+    ov = sub.add_parser("overlay", help="Управление файлами игры (RomFS/LayeredFS)")
+    ov_sub = ov.add_subparsers(dest="subcommand", required=True)
+
+    ov_ext = ov_sub.add_parser("extract", help="Извлечь материалы из дампа RomFS")
+    ov_ext.add_argument("romfs", type=Path, help="Путь к дампу RomFS")
+    ov_ext.add_argument("-o", "--output", type=Path, required=True, help="Куда сохранить материалы")
+    ov_ext.add_argument("-p", "--pattern", action="append", help="Фильтр по именам (напр. Sky, SunMoon)")
+
+    ov_app = ov_sub.add_parser("apply", help="Подготовить структуру LayeredFS для SD-карты")
+    ov_app.add_argument("source", type=Path, help="Путь к скомпилированным материалам или папке")
+    ov_app.add_argument("-o", "--output", type=Path, default=Path("layeredfs_out"), help="Выходная папка для SD")
+    ov_app.add_argument("--title-id", default="0100D71004694000", help="Title ID игры")
 
     sub.add_parser("latest", help="Показать rolling compatibility targets")
     sub.add_parser("doctor", help="Проверить локальный тулчейн")
@@ -144,6 +159,18 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "latest":
             _print_json(load_matrix()["rolling"])
+            return 0
+        if args.command == "overlay":
+            manager = OverlayManager(title_id=getattr(args, "title_id", "0100D71004694000"))
+            if args.subcommand == "extract":
+                extracted = manager.extract_materials(args.romfs, args.output, args.pattern)
+                print(f"Извлечено {len(extracted)} материалов в {args.output}")
+                for f in extracted:
+                    print(f"  - {f.name}")
+            elif args.subcommand == "apply":
+                out = manager.prepare_layeredfs(args.source, args.output)
+                print(f"Структура LayeredFS готова в {out}")
+                print(f"Скопируйте содержимое {out} в корень SD-карты.")
             return 0
         if args.command == "doctor":
             print(f"Python: {sys.version.split()[0]}")

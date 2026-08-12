@@ -30,6 +30,18 @@ mss doctor
 
 Скрипт загружает открытые host-инструменты `shaderc` и BGFX headers по закреплённой ревизии и проверяет SHA-256 для поддерживаемого Linux toolchain; после этого MSS автоматически находит `toolchains/bin/shadercRelease`. Его опция `--reference-merge` скачивает только открытые reference-материалы для изучения; это **не** Switch baseline. Для реальной проверки baseline должен быть извлечён пользователем из RomFS своей копии Minecraft и соответствовать установленной версии игры.
 
+## Автоматизация Overlay (RomFS & LayeredFS)
+
+Для упрощения работы с файлами игры добавлены команды `overlay`:
+
+```bash
+# 1. Извлечь нужные ванильные материалы из дампа RomFS вашей консоли
+mss overlay extract /путь/к/romfs_dump -o vanilla_materials -p Sky -p SunMoon
+
+# 2. Подготовить структуру LayeredFS для SD-карты из скомпилированных материалов
+mss overlay apply examples/texture-probe/materials -o sd_output
+```
+
 ## Контролируемый Switch/Vulkan workflow
 
 Сначала протестируйте минимум — `SunMoon` с одной текстурой. Это целенаправленно проверяет открытый риск Lazurite/Vulkan с texture sampler, прежде чем менять `RenderChunk` или переносить большой shader pack. [2]
@@ -88,6 +100,8 @@ mss latest
 mss init <name> [--preset {basic,newb-x,mcbe-codebase}]
 mss material inspect <material.bin>
 mss material compare --baseline <switch.material.bin> --candidate <built.material.bin>
+mss overlay extract <romfs_dump> -o <output_dir> [-p Sky]
+mss overlay apply <source_materials> -o <sd_card_out>
 mss compile <project> --baseline <switch.material.bin> [--shaderc <custom-shaderc>]
 mss build <pack> --minecraft-version <v> --atmosphere-version <v> [--allow-untested]
 mss validate <pack>
