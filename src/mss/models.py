@@ -27,6 +27,8 @@ class ShaderManifest:
             raise ValidationError("Отсутствует shader.json") from exc
         except json.JSONDecodeError as exc:
             raise ValidationError(f"shader.json: {exc.msg}") from exc
+        if not isinstance(raw, dict):
+            raise ValidationError("shader.json должен содержать JSON-объект")
         required = {"schema", "id", "name", "version", "author", "description", "materials_destination"}
         missing = sorted(required - raw.keys())
         unknown = sorted(raw.keys() - required)
@@ -38,8 +40,16 @@ class ShaderManifest:
             if not isinstance(raw[key], str) or not raw[key].strip():
                 raise ValidationError(f"Поле {key} не может быть пустым")
         dest = raw["materials_destination"]
-        if not isinstance(dest, str) or dest.startswith(("/", "\\")) or ".." in Path(dest).parts:
-            raise ValidationError("materials_destination должен быть безопасным относительным путём")
+        destination = Path(dest) if isinstance(dest, str) else None
+        if (
+            not isinstance(dest, str)
+            or not dest
+            or destination.is_absolute()
+            or ".." in destination.parts
+            or any(part in {"", "."} for part in destination.parts)
+            or "\\" in dest
+        ):
+            raise ValidationError("materials_destination должен быть непустым безопасным относительным POSIX-путём")
         return cls(1, raw["id"], raw["name"].strip(), Version.parse(raw["version"]), raw["author"].strip(), raw["description"].strip(), dest)
 
 

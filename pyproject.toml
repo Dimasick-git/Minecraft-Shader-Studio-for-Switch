@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "minecraft-shader-studio"
 version = "0.3.0"
-description = "RenderDragon LayeredFS pack builder and native tooling for Nintendo Switch"
+description = "RenderDragon Vulkan material builder and LayeredFS packager for Nintendo Switch"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

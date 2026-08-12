@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -19,6 +20,15 @@ PROJECTS = {
     "first-light": ("Sky", "FIRST_LIGHT_STRENGTH 0.35"),
     "texture-probe": ("SunMoon", "TEXTURE_PROBE_STRENGTH 0.25"),
 }
+
+
+def _mss_environment() -> dict[str, str]:
+    """Сделать локальный src-пакет доступным дочернему `python -m mss.cli`."""
+    environment = os.environ.copy()
+    source_root = str(ROOT / "src")
+    current = environment.get("PYTHONPATH")
+    environment["PYTHONPATH"] = source_root if not current else source_root + os.pathsep + current
+    return environment
 
 
 def main() -> int:
@@ -54,11 +64,13 @@ def main() -> int:
                 define,
             ],
             check=True,
+            env=_mss_environment(),
         )
         candidate = output / f"{material_name}.material.bin"
         subprocess.run(
             [sys.executable, "-m", "mss.cli", "material", "inspect", str(candidate)],
             check=True,
+            env=_mss_environment(),
         )
     finally:
         merge_source.unlink(missing_ok=True)

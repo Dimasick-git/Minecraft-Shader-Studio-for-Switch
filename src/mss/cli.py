@@ -54,11 +54,6 @@ def parser() -> argparse.ArgumentParser:
     sub.add_parser("latest", help="Показать rolling compatibility targets")
     sub.add_parser("doctor", help="Проверить локальный тулчейн")
 
-    init = sub.add_parser("init", help="Инициализировать новый shader pack project")
-    init.add_argument("name")
-    init.add_argument("--author", default="Anonymous")
-    init.add_argument("--preset", choices=["basic", "newb-x", "mcbe-codebase"], default="basic")
-
     validate = sub.add_parser("validate", help="Проверить manifest shader pack")
     validate.add_argument("pack", type=Path)
 
@@ -161,12 +156,6 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             print("MSS hardware status: no automatic verification; use a controlled console test.")
-            return 0
-        if args.command == "init":
-            from .packager import init_project
-
-            path = init_project(args.name, args.author, preset=args.preset)
-            print(f"Project initialized in: {path}")
             return 0
         if args.command == "validate":
             manifest = validate_pack(args.pack)

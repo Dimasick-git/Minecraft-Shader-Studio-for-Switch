@@ -62,6 +62,15 @@ class SwitchComparison:
         }
 
 
+@dataclass(frozen=True)
+class StagedBaseline:
+    """Временная копия baseline, необходимая Lazurite merge_source."""
+
+    report: MaterialReport
+    target: Path
+    created: bool
+
+
 def _lazurite_version() -> str:
     try:
         return version("lazurite")
@@ -181,8 +190,10 @@ def compare_switch_materials(
         "same_material_name": base.name == built.name,
         "same_format_version": base.format_version == built.format_version,
         "stages_preserved": set(base.stages).issubset(built.stages),
-        "candidate_has_shaders": built.shader_count > 0,
-        "candidate_has_variants": built.variant_count > 0,
+        "passes_preserved": set(base.passes).issubset(built.passes),
+        "shader_count_preserved": built.shader_count >= base.shader_count > 0,
+        "variant_count_preserved": built.variant_count >= base.variant_count > 0,
+        "texture_buffers_preserved": built.texture_buffer_count >= base.texture_buffer_count,
     }
     return SwitchComparison(
         baseline=base,
@@ -207,11 +218,15 @@ def assert_switch_comparison(
 
 
 def material_filename(name: str) -> str:
-    """Вернуть стандартное имя material.bin для имени материала Lazurite."""
+    """Вернуть безопасное стандартное имя material.bin для Lazurite material name."""
+    if not isinstance(name, str) or not name or name in {".", ".."}:
+        raise ToolchainError("Некорректное имя материала в baseline")
+    if "/" in name or "\\" in name or Path(name).name != name:
+        raise ToolchainError(f"Небезопасное имя материала в baseline: {name!r}")
     return f"{name}.material.bin"
 
 
-def stage_baseline(project: Path | str, baseline: Path | str) -> MaterialReport:
+def stage_baseline(project: Path | str, baseline: Path | str) -> StagedBaseline:
     """Поместить пользовательский baseline в локальный, игнорируемый каталог проекта.
 
     Lazurite читает ``merge_source`` из ``project.json``. Все поставляемые MSS
@@ -227,6 +242,20 @@ def stage_baseline(project: Path | str, baseline: Path | str) -> MaterialReport:
     target_dir.mkdir(parents=True, exist_ok=True)
     target = target_dir / material_filename(report.name)
     source = Path(report.path)
-    if source != target:
-        shutil.copy2(source, target)
-    return report
+    if source == target:
+        return StagedBaseline(report=report, target=target, created=False)
+    if target.exists():
+        if sha256(target.read_bytes()).hexdigest() != report.sha256:
+            raise ToolchainError(
+                f"Временный baseline уже существует и отличается: {target}. "
+                "Удалите его вручную или используйте совпадающий материал."
+            )
+        return StagedBaseline(report=report, target=target, created=False)
+    shutil.copy2(source, target)
+    return StagedBaseline(report=report, target=target, created=True)
+
+
+def remove_staged_baseline(staged: StagedBaseline | None) -> None:
+    """Удалить только временную копию, созданную текущей сборкой."""
+    if staged is not None and staged.created:
+        staged.target.unlink(missing_ok=True)

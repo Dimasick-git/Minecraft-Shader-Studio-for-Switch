@@ -21,8 +21,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import platform
+import shutil
 import stat
 import sys
+import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -115,37 +117,46 @@ def extract_zip_safely(archive: Path, destination: Path) -> list[str]:
 
 
 def fetch_shaderc(dest_dir: Path, platform_key: str | None, allow_unverified: bool) -> Path | None:
+    """Скачать и проверить shaderc до помещения в постоянный toolchain-каталог."""
     key = (platform.system(), platform.machine())
     filename = SHADERC_PLATFORMS.get(key) if platform_key is None else f"shaderc-{platform_key}.zip"
     if not filename:
         print(f"! Неизвестная платформа {key}: скачайте вручную из {SHADERC_RELEASE}")
         return None
-    archive = dest_dir / filename
-    download(SHADERC_RELEASE + filename, archive)
-    members = extract_zip_safely(archive, dest_dir)
-    archive.unlink()
-    binary = None
-    for name in members:
-        candidate = dest_dir / name
-        if candidate.is_file() and not name.endswith((".txt", ".md")):
-            if not name.endswith(".exe"):
-                candidate.chmod(candidate.stat().st_mode | 0o755)
-            binary = candidate
-    if binary is None:
-        raise RuntimeError(f"В архиве {filename} не найден исполняемый shaderc")
     expected = EXPECTED_BINARY_SHA256.get(filename)
-    if expected:
-        verify_sha256(binary, expected, filename)
-        print(f"  SHA-256 verified: {binary.name}")
-    elif allow_unverified:
-        print(f"  ! Нет закреплённого SHA-256 для {filename}; разрешено явным флагом")
-    else:
-        binary.unlink(missing_ok=True)
+    if expected is None and not allow_unverified:
         raise RuntimeError(
             f"Для {filename} нет закреплённого SHA-256. Добавьте проверенный хеш "
             "в скрипт или повторите только при явном --allow-unverified-toolchain."
         )
-    return binary
+
+    with tempfile.TemporaryDirectory(prefix="mss-shaderc-") as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        archive = temporary_root / filename
+        unpacked = temporary_root / "unpacked"
+        download(SHADERC_RELEASE + filename, archive)
+        members = extract_zip_safely(archive, unpacked)
+        candidates = [
+            unpacked / name
+            for name in members
+            if (unpacked / name).is_file() and Path(name).name in {"shadercRelease", "shadercRelease.exe"}
+        ]
+        if len(candidates) != 1:
+            raise RuntimeError(f"В архиве {filename} должен быть ровно один shadercRelease")
+        binary = candidates[0]
+        if expected:
+            verify_sha256(binary, expected, filename)
+            print(f"  SHA-256 verified: {binary.name}")
+        else:
+            print(f"  ! Нет закреплённого SHA-256 для {filename}; разрешено явным флагом")
+
+        dest_dir = dest_dir.expanduser().resolve()
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        target = dest_dir / binary.name
+        shutil.copy2(binary, target)
+        if target.suffix != ".exe":
+            target.chmod(target.stat().st_mode | 0o755)
+        return target
 
 
 def fetch_headers(include_dir: Path) -> None:

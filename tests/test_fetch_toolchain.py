@@ -1,10 +1,11 @@
 import importlib.util
+import shutil
 import stat
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
-
+from unittest.mock import patch
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "fetch_toolchain.py"
 SPEC = importlib.util.spec_from_file_location("mss_fetch_toolchain", SCRIPT)
@@ -67,3 +68,39 @@ class FetchToolchainTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "SHA-256 не совпадает"):
             fetch_toolchain.verify_sha256(payload, "0" * 64, "fixture")
         self.assertFalse(payload.exists())
+
+    def test_shaderc_install_keeps_only_verified_binary(self):
+        self._write_zip([("shadercRelease", "trusted-binary"), ("notes.txt", "ignored")])
+        extracted = self.root / "expected-shadercRelease"
+        extracted.write_text("trusted-binary")
+        expected_hash = fetch_toolchain.sha256_file(extracted)
+
+        def fake_download(_url, destination):
+            shutil.copy2(self.archive, destination)
+
+        with patch.object(fetch_toolchain, "download", side_effect=fake_download), patch.dict(
+            fetch_toolchain.EXPECTED_BINARY_SHA256,
+            {"shaderc-linux-x64.zip": expected_hash},
+            clear=True,
+        ):
+            binary = fetch_toolchain.fetch_shaderc(self.destination, "linux-x64", False)
+
+        self.assertEqual(binary, self.destination / "shadercRelease")
+        self.assertEqual(binary.read_text(), "trusted-binary")
+        self.assertFalse((self.destination / "notes.txt").exists())
+        self.assertFalse((self.destination / "shaderc-linux-x64.zip").exists())
+
+    def test_shaderc_install_rejects_multiple_candidates_without_output(self):
+        self._write_zip([("shadercRelease", "one"), ("nested/shadercRelease", "two")])
+
+        def fake_download(_url, destination):
+            shutil.copy2(self.archive, destination)
+
+        with patch.object(fetch_toolchain, "download", side_effect=fake_download), patch.dict(
+            fetch_toolchain.EXPECTED_BINARY_SHA256,
+            {"shaderc-linux-x64.zip": "0" * 64},
+            clear=True,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "ровно один shadercRelease"):
+                fetch_toolchain.fetch_shaderc(self.destination, "linux-x64", False)
+        self.assertFalse(self.destination.exists())
