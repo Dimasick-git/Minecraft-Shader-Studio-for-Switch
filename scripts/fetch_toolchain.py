@@ -190,7 +190,7 @@ def main() -> int:
     parser.add_argument(
         "--reference-dir",
         type=Path,
-        default=ROOT / "examples" / "first-light" / "reference-merge",
+        default=ROOT / "toolchains" / "reference-merge",
     )
     parser.add_argument("--mc-version", default="1.26.10", help="Версия reference-материалов Newb Shader")
     parser.add_argument(

@@ -11,7 +11,6 @@ from pathlib import Path
 from . import __version__
 from .compatibility import load_matrix
 from .errors import MSSError
-from .nvn import ShaderStage, compile_glsl, graft_nvn_prefix, inspect_nvn
 from .packager import build, validate_pack
 from .overlay import OverlayManager
 
@@ -63,10 +62,6 @@ def parser() -> argparse.ArgumentParser:
     validate = sub.add_parser("validate", help="Проверить manifest shader pack")
     validate.add_argument("pack", type=Path)
 
-    unpack = sub.add_parser("unpack", help="Распаковать .material.bin через Lazurite")
-    unpack.add_argument("input", type=Path)
-    unpack.add_argument("-o", "--output", type=Path, default=Path("unpacked"))
-
     material = sub.add_parser("material", help="Инспекция и структурная проверка material.bin")
     material_sub = material.add_subparsers(dest="material_command", required=True)
     inspect = material_sub.add_parser("inspect", help="Показать platform, format, variants и hash material.bin")
@@ -89,27 +84,6 @@ def parser() -> argparse.ArgumentParser:
         help="Title ID игры (по умолчанию Minecraft Bedrock: 0100D71004694000)",
     )
     build_parser.add_argument("--allow-untested", action="store_true")
-
-    nvn = sub.add_parser("nvn", help="Экспериментальный NVN/Maxwell pipeline")
-    nvn_sub = nvn.add_subparsers(dest="nvn_command", required=True)
-    nvn_compile = nvn_sub.add_parser("compile", help="Скомпилировать GLSL через uam-nvn/uam")
-    nvn_compile.add_argument("source", type=Path)
-    nvn_compile.add_argument("--stage", choices=[stage.value for stage in ShaderStage], required=True)
-    nvn_compile.add_argument("--output", type=Path, default=Path("build/nvn"))
-    nvn_compile.add_argument("--compiler", type=Path)
-    nvn_inspect = nvn_sub.add_parser("inspect", help="Инспектировать NVN/Maxwell binary")
-    nvn_inspect.add_argument("binary", type=Path)
-    nvn_graft = nvn_sub.add_parser("graft", help="Добавить пользовательский NVN prefix к raw Maxwell payload")
-    nvn_graft.add_argument("--template", type=Path, required=True)
-    nvn_graft.add_argument("--raw", type=Path, required=True)
-    nvn_graft.add_argument("--output", type=Path, required=True)
-
-    vulkan = sub.add_parser("vulkan", help="Отдельный Vulkan/SPIR-V pipeline (не material.bin)")
-    vulkan_sub = vulkan.add_subparsers(dest="vulkan_command", required=True)
-    vulkan_compile = vulkan_sub.add_parser("compile", help="Скомпилировать GLSL в SPIR-V")
-    vulkan_compile.add_argument("source", type=Path)
-    vulkan_compile.add_argument("--stage", choices=["vert", "frag", "comp"], required=True)
-    vulkan_compile.add_argument("--output", type=Path, default=Path("build/vulkan"))
 
     compile_parser = sub.add_parser(
         "compile",
@@ -175,7 +149,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "doctor":
             print(f"Python: {sys.version.split()[0]}")
             print(f"Lazurite package: {_installed_version('lazurite')}")
-            print(f"uam-nvn/uam: {shutil.which('uam-nvn') or shutil.which('uam') or 'not found'}")
             print(f"Lazurite CLI: {shutil.which('lazurite') or os.environ.get('MSS_LAZURITE') or 'not found'}")
             print(
                 "shaderc (bgfx-mcbe): "
@@ -187,7 +160,6 @@ def main(argv: list[str] | None = None) -> int:
                     or "not found (см. scripts/fetch_toolchain.py)"
                 )
             )
-            print(f"Java: {shutil.which('java') or 'not found (только для legacy MaterialBinTool)'}")
             print("MSS hardware status: no automatic verification; use a controlled console test.")
             return 0
         if args.command == "init":
@@ -199,12 +171,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "validate":
             manifest = validate_pack(args.pack)
             print(f"OK: {manifest.id} {manifest.version}, author={manifest.author}")
-            return 0
-        if args.command == "unpack":
-            from .external import unpack_material
-
-            unpack_material(args.input, args.output)
-            print(f"Unpacked to: {args.output}")
             return 0
         if args.command == "material":
             from .materials import compare_switch_materials, inspect_material
@@ -226,38 +192,6 @@ def main(argv: list[str] | None = None) -> int:
                 allow_untested=args.allow_untested,
             )
             print(f"Folder: {folder}\nArchive: {archive}")
-            return 0
-        if args.command == "nvn":
-            if args.nvn_command == "compile":
-                artifact = compile_glsl(args.source, ShaderStage(args.stage), args.output, compiler=args.compiler)
-                _print_json(
-                    {
-                        "raw": str(artifact.raw_maxwell),
-                        "dksh": str(artifact.dksh) if artifact.dksh else None,
-                        "compiler": artifact.compiler,
-                        "sha256": artifact.sha256,
-                        "size": artifact.size,
-                    }
-                )
-                return 0
-            if args.nvn_command == "inspect":
-                _print_json(inspect_nvn(args.binary).__dict__)
-                return 0
-            if args.nvn_command == "graft":
-                print(graft_nvn_prefix(args.template, args.raw, args.output))
-                return 0
-        if args.command == "vulkan" and args.vulkan_command == "compile":
-            from .vulkan import compile_to_spirv
-
-            artifact = compile_to_spirv(args.source, args.stage, args.output)
-            _print_json(
-                {
-                    "spirv": str(artifact.spirv),
-                    "compiler": artifact.compiler,
-                    "sha256": artifact.sha256,
-                    "size": artifact.size,
-                }
-            )
             return 0
         if args.command == "compile":
             _require_switch_baseline(args)

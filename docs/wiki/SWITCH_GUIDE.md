@@ -1,72 +1,53 @@
-# Руководство по установке шейдеров через LayeredFS
+# Установка и откат LayeredFS-пака на Nintendo Switch
 
-Для того чтобы ваши шейдеры заработали на Nintendo Switch, необходимо использовать систему **LayeredFS**, предоставляемую кастомной прошивкой **Atmosphère**.
+Этот документ описывает **только** путь для материалов Minecraft Bedrock через LayeredFS. Он не подтверждает работоспособность конкретного шейдера на устройстве: перед установкой требуются `mss material inspect`, baseline-сравнение и controlled hardware test.
 
-## Title ID для Minecraft на Switch
+> LayeredFS зеркалирует путь файла внутри RomFS в `sdmc:/atmosphere/contents/<title-id>/romfs/…`. Для Minecraft Bedrock MSS по умолчанию использует Title ID `0100D71004694000`. [1]
 
-| Издание | Title ID | Статус |
-| :--- | :--- | :--- |
-| **Minecraft (Bedrock Edition)** — наша цель | `0100D71004694000` | Актуальное издание (eShop «Minecraft», Mojang, 2018) |
-| Minecraft: Nintendo Switch Edition (легаси) | `01006BD001E06000` | Мёртвое издание 2017 г., без RenderDragon — **не поддерживается** |
+## Автоматический путь
 
-Проверить ID на консоли можно в DBI/Goldleaf или по папке сейвов Checkpoint
-(`0x0100D71004694000 Minecraft`).
+Сначала создайте baseline из RomFS **своей** копии игры. Не загружайте дампы или ванильные `.material.bin` в GitHub Actions, issues или releases.
 
-> Minecraft **Preview** на Switch не существует (Preview доступен только на
-> Xbox/iOS/Windows/PlayStation), поэтому целевой Title ID всегда один.
+```bash
+# Извлечь нужные материалы из локального дампа RomFS.
+mss overlay extract /путь/к/romfs_dump -o vanilla_materials -p SunMoon -p Sky
 
-## Структура папок
+# Проверить и собрать свой material с локальным baseline.
+mss material inspect vanilla_materials/SunMoon.material.bin
+mss compile examples/texture-probe \
+  -o examples/texture-probe/materials \
+  --baseline vanilla_materials/SunMoon.material.bin
 
-Ваши модифицированные файлы должны располагаться по следующему пути на SD-карте:
-
+# Сформировать содержимое корня SD-карты.
+mss overlay apply examples/texture-probe/materials -o sd_output
 ```
-sdmc:/atmosphere/contents/0100D71004694000/romfs/renderer/materials/
+
+После этого в `sd_output` будет создано следующее дерево:
+
+```text
+atmosphere/
+└── contents/
+    └── 0100D71004694000/
+        └── romfs/
+            └── renderer/
+                └── materials/
+                    └── SunMoon.material.bin
 ```
 
-⚠️ **Сверьте путь с дампом своей копии игры.** Ожидаемое расположение материалов внутри
-romfs — `renderer/materials/*.material.bin` (как на других платформах), но перед первой
-установкой один раз задампите romfs (nxdumptool или DBI → Dump RomFS) и убедитесь, где
-лежат `*.material.bin`. LayeredFS-путь на SD должен зеркалить структуру romfs.
+Скопируйте **содержимое** `sd_output/` в корень SD-карты, полностью закройте Minecraft и запустите его снова.
 
-## Порядок действий
+## Безопасный откат
 
-1. Убедитесь, что установлена актуальная **Atmosphère** (1.11.2 на июль 2026, FW 22.5.0).
-2. Создайте папку `atmosphere/contents/0100D71004694000/` на SD-карте.
-3. Внутри создайте структуру `romfs/renderer/materials/`.
-4. Скопируйте ваши скомпилированные `.material.bin` (платформа **Vulkan**!) в эту папку.
-5. Полностью закройте игру и запустите заново.
+| Ситуация | Действие |
+|---|---|
+| Игра не запускается после подмены | Удерживайте `L` при запуске, чтобы временно пропустить LayeredFS-моды, затем удалите последний `.material.bin` из overlay. [1] |
+| Игра запускается, но эффект отсутствует | Проверьте путь `romfs/renderer/materials/`, SHA-256 из `MSS-MANIFEST.json`, версию baseline и `TEXTURE_PROBE_STRENGTH`. |
+| Текстура чёрная/белая или возник crash | Не распространяйте артефакт. Сохраните `material inspect/compare`, версии toolchain и наблюдение как минимальный репродуктор. |
 
-Полезно знать:
+## Ограничения
 
-- **Держите L при запуске игры** — Atmosphère пропустит все LayeredFS-моды на этот запуск
-  (быстрый способ проверить, что проблема именно в шейдерах).
-- **SimpleModManager** удобен для включения/выключения наборов модов.
-- После обновления игры проверяйте совместимость: формат `material.bin` может меняться
-  между версиями (используйте `mss doctor` и матрицу совместимости проекта).
+GitHub Actions создаёт только `smoke-build-only` артефакты из открытых reference metadata. Такие файлы полезны для проверки CI и структуры каталогов, но **не предназначены для установки** на консоль. Финальный пакет должен быть собран локально с baseline из RomFS той же версии игры.
 
-## Риски: онлайн и баны
+## References
 
-Minecraft Bedrock ходит в **Xbox Live**, а модификация онлайн-игр на CFW — известная
-категория риска бана Nintendo:
-
-- Играйте с модами **оффлайн** (идеально: emuMMC + dns-mitm, полностью изолированный от
-  серверов Nintendo).
-- Онлайн — только с чистого sysNAND без активного LayeredFS.
-- Подробно: https://nx.eiphax.tech/ban
-
-## Распространение паков
-
-- **Нельзя** распространять ванильные `material.bin` из дампа игры — это собственность
-  Mojang. Дамп каждый делает сам со своей копии.
-- Нормальная практика сообщества: публиковать **исходники** шейдера + инструкции сборки
-  (или пак, собранный из собственных исходников).
-
-## Отладка и логи
-
-Если шейдеры не загружаются:
-- Проверьте, что `material.bin` собран под платформу **Vulkan** (не ESSL/DXBC — файлы с
-  других платформ Switch не примет).
-- Проверьте логи Atmosphère в `/atmosphere/logs/`.
-- Убедитесь, что версия игры соответствует версии, под которую собран пак
-  (`mss doctor`, `compatibility/matrix.json`).
-- Запустите с зажатой L — если без модов игра стартует, дело в паке.
+[1]: https://switch.hacks.guide/extras/game_modding.html "NH Switch Guide — Game modding with LayeredFS"

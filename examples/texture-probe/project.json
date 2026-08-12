@@ -4,7 +4,7 @@
     "merge_source": ["vanilla"],
     "include_patterns": ["SunMoon"],
     "exclude_patterns": [".*", "_*"],
-    "include_search_paths": ["include", "../../toolchains/include"]
+    "include_search_paths": ["../../toolchains/include"]
   },
   "profiles": {
     "switch": {

@@ -16,7 +16,6 @@
 | Инспекция material.bin | Реализовано | `mss material inspect` сохраняет hash, format version, платформы, стадии, варианты и число texture buffers. |
 | Контрольный тест текстур | Реализовано | `examples/texture-probe` проверяет `s_SunMoonTexture` перед сложными материалами. |
 | Работа на конкретной Switch | Не подтверждено автоматически | Требует controlled hardware test, наблюдения в игре и сохранённого отчёта. |
-| NVN/Maxwell-путь | Экспериментальный | Не является методом загрузки материала Minecraft; не используйте его для Switch-пака. |
 
 ## Перед началом
 
@@ -117,7 +116,6 @@ mss overlay apply <source_materials> -o <sd_card_out>
 mss compile <project> --baseline <switch.material.bin> [--shaderc <custom-shaderc>]
 mss build <pack> --minecraft-version <v> --atmosphere-version <v> [--allow-untested]
 mss validate <pack>
-mss unpack <material.bin> -o <output_dir>
 ```
 
 ## Проверки разработки
@@ -134,7 +132,6 @@ ctest --test-dir build --output-on-failure
 ```text
 native/              C++20 host CLI и unit tests
 src/mss/             Python CLI, build и material inspection
-switch-loader/       libnx homebrew UI-каркас; overlay-запись не реализована
 compatibility/       rolling version matrix
 examples/            публичные исходники и диагностические fixtures
 docs/                исследования, протоколы и Switch guide
@@ -142,7 +139,7 @@ docs/                исследования, протоколы и Switch guid
 
 ## Лицензия и ограничения
 
-Проект не содержит Minecraft, ключи, дампы, Nintendo SDK или проприетарные `material.bin`. Используйте только файлы, законно полученные из собственной копии игры. Никакая часть этого проекта не обходит лицензионные механизмы и не превращает произвольный GLSL в подтверждённый NVN-материал Minecraft.
+Проект не содержит Minecraft, ключи, дампы, Nintendo SDK или проприетарные `material.bin`. Используйте только файлы, законно полученные из собственной копии игры. Никакая часть этого проекта не обходит лицензионные механизмы и не заменяет аппаратную проверку на собственной консоли пользователя.
 
 [1]: docs/RESEARCH-2026-08.md "Актуальный статус пользовательских RenderDragon-шейдеров на Nintendo Switch"
 [2]: https://github.com/veka0/lazurite/issues/6 "Lazurite issue #6 — broken textures on Vulkan"

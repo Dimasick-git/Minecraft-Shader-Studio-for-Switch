@@ -1,21 +1,21 @@
 # Roadmap
 
 ## R0 — Foundation ✅
-- strict manifest; deterministic LayeredFS package; hashes; rolling version watcher; CI matrix.
 
-## R1 — Material laboratory 🚧
-- MaterialBinTool/Lazurite adapters; structural diff; per-version fixtures; crash-safe logs.
-- ✅ 2026-07-23: адаптер `lazurite build` (`mss compile`, профиль switch → Vulkan), скрипт тулчейна и пример `first-light`; Vulkan-компиляция проверена end-to-end в песочнице.
+Строгая проверка manifest, детерминированная LayeredFS-структура, хеши, матрица совместимости, CI и безопасная подготовка toolchain реализованы.
+
+## R1 — Vulkan material workflow ✅
+
+Lazurite-проекты для профиля `switch`, обязательный ванильный Vulkan baseline, `material inspect/compare`, `texture-probe`, автоматизация RomFS/LayeredFS и smoke-артефакты GitHub Actions реализованы.
 
 ## R2 — Hardware validation
-- Erista/Mariko smoke protocol; handheld/docked profiles; frame-time budget; rollback test.
 
-## R3 — Switch loader
-- signed local pack index; atomic activation; backup/rollback; build-ID detection.
+Следующая обязательная веха — контролируемый тест на собственной Switch: `SunMoon` texture probe, проверка handheld/docked, rollback удержанием `L`, измерение времени кадра и сохранение отчёта с версиями игры, Atmosphère, Lazurite и `shaderc`.
 
-## R4 — NVN research
-- document platform sections; legal clean-room analysis; prove or reject offline translation path.
+## R3 — Versioned regression fixtures
 
-No milestone promises arbitrary GLSL→NVN compilation until a reproducible clean-room path exists.
+После появления законно полученных пользователем baseline-отчётов проект сможет добавить обезличенные metadata fixtures и регрессионные проверки format version, platform tag, stages и variants для конкретных версий игры.
 
-Author: **Dimasick-git**.
+> MSS не будет объявлять поддержку конкретной версии Minecraft, пока она не прошла воспроизводимую аппаратную проверку.
+
+Автор: **Dimasick-git**.

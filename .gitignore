@@ -4,22 +4,22 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
-dist/
 
-# Native / CMake build
+# Native / generated artifacts
 build/
+dist/
+artifacts/
 CMakeCache.txt
 CMakeFiles/
+
+# Downloaded public toolchain and user-owned game materials
+# Never commit binaries, RomFS dumps, baseline materials, or CI outputs.
+toolchains/
+examples/*/vanilla/*
+!examples/*/vanilla/.gitkeep
+examples/*/materials/*.material.bin
 
 # Editors / OS
 .DS_Store
 .idea/
 .vscode/
-
-# Скачиваемый тулчейн и ванильные материалы Mojang — никогда не коммитить
-toolchains/bin/
-toolchains/include/
-examples/*/vanilla/*
-!examples/*/vanilla/.gitkeep
-examples/*/include/*.sh
-examples/*/materials/*.material.bin
