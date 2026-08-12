@@ -35,17 +35,6 @@ jobs:
       - name: Verify CLI environment
         run: mss doctor
 
-  build-native:
-    name: Native build and tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure, build and test
-        run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --parallel
-          ctest --test-dir build --output-on-failure
-
   smoke-materials:
     name: Smoke build (${{ matrix.project }})
     needs: test-python

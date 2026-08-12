@@ -31,7 +31,7 @@ mss doctor
 
 ## GitHub Actions: автоматическая сборка
 
-Каждый push и pull request в `main` автоматически запускает CI. Его также можно вручную запустить во вкладке **Actions** → **CI** → **Run workflow**. CI выполняет Python- и native-тесты, скачивает проверенный публичный `shaderc`/BGFX toolchain, делает smoke-сборку `first-light` и `texture-probe`, создаёт проверяемое дерево LayeredFS и сохраняет оба артефакта на 7 дней.
+Каждый push и pull request в `main` автоматически запускает CI. Его также можно вручную запустить во вкладке **Actions** → **CI** → **Run workflow**. CI выполняет Python-тесты, скачивает проверенный публичный `shaderc`/BGFX toolchain, делает smoke-сборку `first-light` и `texture-probe`, создаёт проверяемое дерево LayeredFS и сохраняет оба артефакта на 7 дней.
 
 > Артефакты CI маркированы `smoke-build-only`: они используют открытые reference metadata и не содержат ванильных файлов вашей игры. Их нельзя устанавливать на Switch и нельзя считать аппаратно подтверждёнными. Дамп RomFS, baseline и финальный пакет, предназначенный для вашей консоли, остаются только на вашем локальном устройстве.
 
@@ -39,7 +39,7 @@ mss doctor
 |---|---|---|
 | `mss-smoke-first-light` | Страница успешного запуска CI → **Artifacts** | Проверить Vulkan material format и дерево `sd-root/atmosphere/contents/...`. |
 | `mss-smoke-texture-probe` | Страница успешного запуска CI → **Artifacts** | Проверить сборку текстурного `SunMoon` material без игровых файлов. |
-| Unit/native reports | Логи соответствующих jobs | Проверить отсутствие регрессий в MSS. |
+| Unit-test reports | Логи job `Python tests` | Проверить отсутствие регрессий в MSS. |
 
 ## Автоматизация Overlay (RomFS & LayeredFS)
 
@@ -122,15 +122,12 @@ mss validate <pack>
 
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
+PYTHONPATH=src python3 -m compileall -q src scripts tests
 ```
 
 ## Структура репозитория
 
 ```text
-native/              C++20 host CLI и unit tests
 src/mss/             Python CLI, build и material inspection
 compatibility/       rolling version matrix
 examples/            публичные исходники и диагностические fixtures

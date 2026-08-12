@@ -9,8 +9,6 @@ venv/
 build/
 dist/
 artifacts/
-CMakeCache.txt
-CMakeFiles/
 
 # Downloaded public toolchain and user-owned game materials
 # Never commit binaries, RomFS dumps, baseline materials, or CI outputs.
