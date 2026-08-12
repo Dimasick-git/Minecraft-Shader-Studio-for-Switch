@@ -1,12 +1,19 @@
 {
   "schema": 1,
   "rolling": {
-    "minecraft_bedrock": "1.26.34",
+    "minecraft_bedrock": "1.26.40",
     "atmosphere": "1.11.2",
-    "checked_at": "2026-07-23T20:30:00Z",
-    "policy": "latest-detected, fail-closed-until-verified"
+    "checked_at": "2026-08-12T00:58:25.508901+00:00",
+    "policy": "latest-detected, fail-closed-until-verified",
+    "build_id": "UNKNOWN"
   },
   "targets": [
+    {
+      "minecraft": "1.26.40",
+      "atmosphere_min": "1.11.2",
+      "status": "detected",
+      "notes": "Automatically detected via GitHub Actions"
+    },
     {
       "minecraft": "1.26.34",
       "atmosphere_min": "1.11.2",
