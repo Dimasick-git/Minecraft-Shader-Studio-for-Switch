@@ -32,8 +32,8 @@ jobs:
       - name: Commit and push if changed
         if: steps.check.outputs.changed == 'true'
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "2.11015981e+08+Dimasick-git@users.noreply.github.com"
+          git config --local user.name "Dimasick-git"
           git add compatibility/matrix.json
           git commit -m "Auto-update: Minecraft/Atmosphere versions detected"
           git push

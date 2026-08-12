@@ -30,6 +30,18 @@ mss doctor
 
 Скрипт загружает открытые host-инструменты `shaderc` и BGFX headers по закреплённой ревизии и проверяет SHA-256 для поддерживаемого Linux toolchain; после этого MSS автоматически находит `toolchains/bin/shadercRelease`. Его опция `--reference-merge` скачивает только открытые reference-материалы для изучения; это **не** Switch baseline. Для реальной проверки baseline должен быть извлечён пользователем из RomFS своей копии Minecraft и соответствовать установленной версии игры.
 
+## GitHub Actions: автоматическая сборка
+
+Каждый push и pull request в `main` автоматически запускает CI. Его также можно вручную запустить во вкладке **Actions** → **CI** → **Run workflow**. CI выполняет Python- и native-тесты, скачивает проверенный публичный `shaderc`/BGFX toolchain, делает smoke-сборку `first-light` и `texture-probe`, создаёт проверяемое дерево LayeredFS и сохраняет оба артефакта на 7 дней.
+
+> Артефакты CI маркированы `smoke-build-only`: они используют открытые reference metadata и не содержат ванильных файлов вашей игры. Их нельзя устанавливать на Switch и нельзя считать аппаратно подтверждёнными. Дамп RomFS, baseline и финальный пакет, предназначенный для вашей консоли, остаются только на вашем локальном устройстве.
+
+| Что создаёт CI | Где найти | Для чего использовать |
+|---|---|---|
+| `mss-smoke-first-light` | Страница успешного запуска CI → **Artifacts** | Проверить Vulkan material format и дерево `sd-root/atmosphere/contents/...`. |
+| `mss-smoke-texture-probe` | Страница успешного запуска CI → **Artifacts** | Проверить сборку текстурного `SunMoon` material без игровых файлов. |
+| Unit/native reports | Логи соответствующих jobs | Проверить отсутствие регрессий в MSS. |
+
 ## Автоматизация Overlay (RomFS & LayeredFS)
 
 Для упрощения работы с файлами игры добавлены команды `overlay`:

@@ -2,50 +2,93 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-python:
+    name: Python tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install dependencies
+          cache: pip
+      - name: Install package
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
-      - name: Unit tests
+          python -m pip install -e .
+      - name: Run unit tests and bytecode check
         run: |
           python -m unittest discover -s tests -v
-      - name: Compile smoke (fake toolchain)
-        run: |
-          python - <<'PY'
-          import subprocess, sys
-          r = subprocess.run([sys.executable, "-m", "unittest", "tests.test_compile", "-v"])
-          sys.exit(r.returncode)
-          PY
-      - name: Run smoke tests
-        run: |
-          # Basic validation test
-          mss doctor
-          mss init "TestProject"
-          mss validate TestProject || echo "Validation expected to fail without materials"
+          python -m compileall -q src scripts tests
+      - name: Verify CLI environment
+        run: mss doctor
 
   build-native:
+    name: Native build and tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake g++
-      - name: Build
+      - name: Configure, build and test
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build --parallel
-      - name: Test
+          ctest --test-dir build --output-on-failure
+
+  smoke-materials:
+    name: Smoke build (${{ matrix.project }})
+    needs: test-python
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [first-light, texture-probe]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install package
         run: |
-          cd build && ctest --output-on-failure
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Download verified public toolchain and reference metadata
+        run: |
+          python scripts/fetch_toolchain.py \
+            --reference-merge \
+            --reference-dir "$RUNNER_TEMP/mss-reference"
+      - name: Compile public smoke material
+        run: |
+          python scripts/ci_smoke_build.py "${{ matrix.project }}" \
+            --reference-dir "$RUNNER_TEMP/mss-reference" \
+            --output "artifacts/${{ matrix.project }}/materials"
+          case "${{ matrix.project }}" in
+            first-light) material=Sky ;;
+            texture-probe) material=SunMoon ;;
+            *) echo "Unknown smoke project" >&2; exit 1 ;;
+          esac
+          mss material inspect "artifacts/${{ matrix.project }}/materials/${material}.material.bin" \
+            > "artifacts/${{ matrix.project }}/MATERIAL-REPORT.json"
+      - name: Build LayeredFS directory for inspection only
+        run: |
+          mss overlay apply "artifacts/${{ matrix.project }}/materials" \
+            -o "artifacts/${{ matrix.project }}/sd-root"
+      - name: Upload smoke artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mss-smoke-${{ matrix.project }}
+          path: artifacts/${{ matrix.project }}
+          if-no-files-found: error
+          retention-days: 7
