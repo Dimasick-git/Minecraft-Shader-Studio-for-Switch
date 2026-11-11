@@ -2,8 +2,8 @@
   "schema": 1,
   "rolling": {
     "minecraft_bedrock": "1.26.60",
-    "atmosphere": "1.12.1",
-    "checked_at": "2026-10-28T17:33:39.369298+00:00",
+    "atmosphere": "1.12.2",
+    "checked_at": "2026-11-11T03:37:07.746484+00:00",
     "policy": "latest-detected, fail-closed-until-verified",
     "build_id": "UNKNOWN"
   },
